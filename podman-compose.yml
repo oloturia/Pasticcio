@@ -1,0 +1,219 @@
+# ============================================================
+# podman-compose.yml — development environment
+# ============================================================
+#
+# This file describes the entire application stack as a set of
+# "services" (containers) that communicate with each other.
+#
+# Main commands:
+#   podman-compose up -d        → start everything in the background
+#   podman-compose down         → stop and remove containers
+#   podman-compose logs -f web  → follow logs for the "web" service
+#   podman-compose ps           → status of all containers
+#   podman-compose exec web bash → open a shell inside the web container
+#
+# NOTE: podman-compose automatically reads the .env file in the
+# same directory, so you don't need to pass variables manually.
+
+version: "3.9"
+
+services:
+
+  # ----------------------------------------------------------
+  # web — the FastAPI application
+  # ----------------------------------------------------------
+  web:
+    # Build using Dockerfile.dev in the current directory
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+
+    # Container name (useful for log filtering)
+    container_name: pasticcio-web
+
+    # Volume mount: maps the local ./app folder into the container
+    # at /app/app. This means when you edit a Python file on your
+    # machine, the change is IMMEDIATELY visible inside the container
+    # and uvicorn restarts automatically.
+    volumes:
+      - ./app:/app/app
+      # Separate volume for uploaded files (recipe images)
+      - pasticcio-media:/app/media
+
+    # Port mapping: "host_port:container_port"
+    # Access the app at http://localhost:8000
+    ports:
+      - "8000:8000"
+
+    # Environment variables read from the .env file
+    env_file:
+      - .env
+
+    # Wait for db and redis to be "healthy" before starting web
+    # (see healthcheck definitions below)
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    # Internal network shared by all containers
+    networks:
+      - pasticcio-net
+
+    # Restart automatically if it crashes (but not if you stop it manually)
+    restart: unless-stopped
+
+
+  # ----------------------------------------------------------
+  # worker — Celery for async tasks (ActivityPub federation)
+  # ----------------------------------------------------------
+  worker:
+    # Same image as web — same code, different start command
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+
+    container_name: pasticcio-worker
+
+    # Same volume mount: code is shared between web and worker
+    volumes:
+      - ./app:/app/app
+      - pasticcio-media:/app/media
+
+    # Different command: start Celery instead of uvicorn
+    # --loglevel=info  → show what tasks are being processed
+    # -A app.worker    → the Python module where the Celery app is defined
+    command: celery -A app.worker worker --loglevel=info
+
+    env_file:
+      - .env
+
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    networks:
+      - pasticcio-net
+
+    restart: unless-stopped
+
+
+  # ----------------------------------------------------------
+  # db — PostgreSQL
+  # ----------------------------------------------------------
+  db:
+    # Official PostgreSQL 15 image (alpine = minimal size)
+    image: postgres:15-alpine
+
+    container_name: pasticcio-db
+
+    # The POSTGRES_* variables create the database and user on
+    # first startup. Values come from the .env file.
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+
+    # Named volume for data: stopping and restarting the container
+    # preserves all data. Without this volume, every restart would
+    # wipe the entire database.
+    volumes:
+      - pasticcio-pgdata:/var/lib/postgresql/data
+
+    # Healthcheck: podman-compose waits until PostgreSQL is truly
+    # ready to accept connections before starting dependent services.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - pasticcio-net
+
+    restart: unless-stopped
+
+
+  # ----------------------------------------------------------
+  # redis — cache and task queue for Celery
+  # ----------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+
+    container_name: pasticcio-redis
+
+    # --save 60 1 → persist to disk every 60s if at least 1 change
+    # (minimal persistence, fine for development)
+    command: redis-server --save 60 1
+
+    volumes:
+      - pasticcio-redisdata:/data
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - pasticcio-net
+
+    restart: unless-stopped
+
+
+  # ----------------------------------------------------------
+  # caddy — reverse proxy with automatic HTTPS
+  # ----------------------------------------------------------
+  # Caddy sits in front of FastAPI and handles:
+  # - HTTPS (self-signed cert in development, Let's Encrypt in production)
+  # - Correct HTTP headers (X-Forwarded-For, etc.)
+  #
+  # ActivityPub REQUIRES HTTPS, so even in development we need Caddy
+  # if we want to test federation. For pure API development, you can
+  # skip it and use http://localhost:8000 directly.
+  caddy:
+    image: caddy:2-alpine
+
+    container_name: pasticcio-caddy
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      - ./Caddyfile.dev:/etc/caddy/Caddyfile:ro
+      - pasticcio-caddy-data:/data
+      - pasticcio-caddy-config:/config
+
+    networks:
+      - pasticcio-net
+
+    restart: unless-stopped
+
+
+# ----------------------------------------------------------
+# Named volumes
+# ----------------------------------------------------------
+# Named volumes are managed by Podman and survive `podman-compose down`.
+# To delete data as well: podman-compose down -v
+volumes:
+  pasticcio-pgdata:
+  pasticcio-redisdata:
+  pasticcio-media:
+  pasticcio-caddy-data:
+  pasticcio-caddy-config:
+
+
+# ----------------------------------------------------------
+# Internal network
+# ----------------------------------------------------------
+# All containers share this network and can reach each other
+# using the service name as hostname.
+# e.g. from the "web" container: PostgreSQL is at "db:5432",
+#      Redis is at "redis:6379"
+networks:
+  pasticcio-net:
+    driver: bridge

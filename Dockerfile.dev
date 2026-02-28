@@ -1,0 +1,59 @@
+# ============================================================
+# Dockerfile.dev — development image
+# ============================================================
+#
+# A Dockerfile describes how to build a container image.
+# This version is optimized for development: it includes debug
+# tools and mounts the code as a volume (so you don't need to
+# rebuild the image every time you change a file).
+#
+# For production, use Dockerfile.prod — leaner, no volume mounts.
+
+# --- Base image ---
+# We start from the official "slim" Python image (Debian without
+# unnecessary packages). Pinning the tag "3.12-slim" makes the
+# environment reproducible.
+FROM python:3.12-slim
+
+# --- Python environment variables ---
+# PYTHONDONTWRITEBYTECODE=1  → don't create .pyc files (useless in containers)
+# PYTHONUNBUFFERED=1         → print() output appears immediately in logs
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# --- Working directory inside the container ---
+# All subsequent commands run from /app
+WORKDIR /app
+
+# --- System dependencies ---
+# Only what's needed to compile Python packages
+# (psycopg2 needs libpq-dev, cryptography needs gcc)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- Python dependencies ---
+# Copy requirements.txt FIRST and install before copying the app code.
+# This leverages Docker/Podman layer caching: if requirements.txt
+# hasn't changed, this layer won't be rebuilt on the next build.
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# --- Application source code ---
+# In development this is OVERRIDDEN by the volume mount in
+# podman-compose.yml, so this line only serves as a fallback
+# if the image is used standalone.
+COPY app/ ./app/
+
+# --- Exposed port ---
+# Documents that the process inside the container uses port 8000.
+# This doesn't actually open the port — podman-compose handles that.
+EXPOSE 8000
+
+# --- Start command ---
+# uvicorn is the ASGI server that runs FastAPI.
+# --reload    restarts automatically when you change a file.
+# --host 0.0.0.0  is required to be reachable from outside the
+#   container (otherwise it only listens on the internal localhost).
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
