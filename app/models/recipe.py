@@ -78,6 +78,21 @@ class IngredientUnit(str, enum.Enum):
 # Recipe
 # ============================================================
 
+class FoodItem(Base):
+    __tablename__ = "food_items"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    name: Mapped[str] = mapped_column(String(256), nullable=False)
+    names: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    source: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    source_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    per_100g: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
 class Recipe(Base):
     __tablename__ = "recipes"
 

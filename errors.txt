@@ -1,0 +1,1074 @@
+[1m=================================================== test session starts ====================================================[0m
+platform linux -- Python 3.12.12, pytest-8.2.2, pluggy-1.6.0 -- /usr/local/bin/python3.12
+cachedir: .pytest_cache
+rootdir: /app
+configfile: pytest.ini
+testpaths: tests
+plugins: asyncio-0.23.8, anyio-4.4.0
+asyncio: mode=Mode.AUTO
+[1mcollecting ... [0m[1mcollected 31 items                                                                                                         [0m
+
+tests/test_auth.py::test_register_success [31mERROR[0m[31m                                                                      [  3%][0m
+tests/test_auth.py::test_register_duplicate_username [31mERROR[0m[31m                                                           [  6%][0m
+tests/test_auth.py::test_register_duplicate_email [31mERROR[0m[31m                                                              [  9%][0m
+tests/test_auth.py::test_register_username_too_short [31mERROR[0m[31m                                                           [ 12%][0m
+tests/test_auth.py::test_register_invalid_username_characters [31mERROR[0m[31m                                                  [ 16%][0m
+tests/test_auth.py::test_register_password_too_short [31mERROR[0m[31m                                                           [ 19%][0m
+tests/test_auth.py::test_register_invalid_email [31mERROR[0m[31m                                                                [ 22%][0m
+tests/test_auth.py::test_login_success [31mERROR[0m[31m                                                                         [ 25%][0m
+tests/test_auth.py::test_login_wrong_password [31mERROR[0m[31m                                                                  [ 29%][0m
+tests/test_auth.py::test_login_nonexistent_user [31mERROR[0m[31m                                                                [ 32%][0m
+tests/test_auth.py::test_login_wrong_password_same_status_as_wrong_user [31mERROR[0m[31m                                        [ 35%][0m
+tests/test_auth.py::test_me_authenticated [31mERROR[0m[31m                                                                      [ 38%][0m
+tests/test_auth.py::test_me_unauthenticated [31mERROR[0m[31m                                                                    [ 41%][0m
+tests/test_auth.py::test_me_invalid_token [31mERROR[0m[31m                                                                      [ 45%][0m
+tests/test_recipes.py::test_create_recipe_draft [31mERROR[0m[31m                                                                [ 48%][0m
+tests/test_recipes.py::test_create_recipe_published [31mERROR[0m[31m                                                            [ 51%][0m
+tests/test_recipes.py::test_create_recipe_unauthenticated [31mERROR[0m[31m                                                      [ 54%][0m
+tests/test_recipes.py::test_create_recipe_generates_slug [31mERROR[0m[31m                                                       [ 58%][0m
+tests/test_recipes.py::test_create_recipe_duplicate_slug [31mERROR[0m[31m                                                       [ 61%][0m
+tests/test_recipes.py::test_create_recipe_with_metabolic_tags [31mERROR[0m[31m                                                  [ 64%][0m
+tests/test_recipes.py::test_get_recipe [31mERROR[0m[31m                                                                         [ 67%][0m
+tests/test_recipes.py::test_get_draft_recipe_as_anonymous [31mERROR[0m[31m                                                      [ 70%][0m
+tests/test_recipes.py::test_get_nonexistent_recipe [31mERROR[0m[31m                                                             [ 74%][0m
+tests/test_recipes.py::test_list_recipes_only_published [31mERROR[0m[31m                                                        [ 77%][0m
+tests/test_recipes.py::test_list_recipes_vegan_filter [31mERROR[0m[31m                                                          [ 80%][0m
+tests/test_recipes.py::test_update_recipe [31mERROR[0m[31m                                                                      [ 83%][0m
+tests/test_recipes.py::test_update_recipe_publish [31mERROR[0m[31m                                                              [ 87%][0m
+tests/test_recipes.py::test_update_recipe_wrong_user [31mERROR[0m[31m                                                           [ 90%][0m
+tests/test_recipes.py::test_delete_recipe [31mERROR[0m[31m                                                                      [ 93%][0m
+tests/test_recipes.py::test_delete_recipe_wrong_user [31mERROR[0m[31m                                                           [ 96%][0m
+tests/test_recipes.py::test_delete_recipe_unauthenticated [31mERROR[0m[31m                                                      [100%][0m
+
+========================================================== ERRORS ==========================================================
+[31m[1m_________________________________________ ERROR at setup of test_register_success __________________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m____________________________________ ERROR at setup of test_register_duplicate_username ____________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m_____________________________________ ERROR at setup of test_register_duplicate_email ______________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m____________________________________ ERROR at setup of test_register_username_too_short ____________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m_______________________________ ERROR at setup of test_register_invalid_username_characters ________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m____________________________________ ERROR at setup of test_register_password_too_short ____________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m______________________________________ ERROR at setup of test_register_invalid_email _______________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m___________________________________________ ERROR at setup of test_login_success ___________________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m_______________________________________ ERROR at setup of test_login_wrong_password ________________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m______________________________________ ERROR at setup of test_login_nonexistent_user _______________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m__________________________ ERROR at setup of test_login_wrong_password_same_status_as_wrong_user ___________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m_________________________________________ ERROR at setup of test_me_authenticated __________________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m________________________________________ ERROR at setup of test_me_unauthenticated _________________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m_________________________________________ ERROR at setup of test_me_invalid_token __________________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m________________________________________ ERROR at setup of test_create_recipe_draft ________________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m______________________________________ ERROR at setup of test_create_recipe_published ______________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m___________________________________ ERROR at setup of test_create_recipe_unauthenticated ___________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m___________________________________ ERROR at setup of test_create_recipe_generates_slug ____________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m___________________________________ ERROR at setup of test_create_recipe_duplicate_slug ____________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m_________________________________ ERROR at setup of test_create_recipe_with_metabolic_tags _________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m____________________________________________ ERROR at setup of test_get_recipe _____________________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m___________________________________ ERROR at setup of test_get_draft_recipe_as_anonymous ___________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m______________________________________ ERROR at setup of test_get_nonexistent_recipe _______________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m____________________________________ ERROR at setup of test_list_recipes_only_published ____________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m_____________________________________ ERROR at setup of test_list_recipes_vegan_filter _____________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m___________________________________________ ERROR at setup of test_update_recipe ___________________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m_______________________________________ ERROR at setup of test_update_recipe_publish _______________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m_____________________________________ ERROR at setup of test_update_recipe_wrong_user ______________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m___________________________________________ ERROR at setup of test_delete_recipe ___________________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m_____________________________________ ERROR at setup of test_delete_recipe_wrong_user ______________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[31m[1m___________________________________ ERROR at setup of test_delete_recipe_unauthenticated ___________________________________[0m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:347: in _asyncgen_fixture_wrapper
+    [0mresult = event_loop.run_until_complete(setup())[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/asyncio/base_events.py[0m:691: in run_until_complete
+    [0m[94mreturn[39;49;00m future.result()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/pytest_asyncio/plugin.py[0m:329: in setup
+    [0mres = [94mawait[39;49;00m gen_obj.[92m__anext__[39;49;00m()[90m[39;49;00m
+[1m[31mtests/conftest.py[0m:69: in setup_test_database
+    [0m[94mawait[39;49;00m conn.run_sync(Base.metadata.create_all)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py[0m:888: in run_sync
+    [0m[94mreturn[39;49;00m [94mawait[39;49;00m greenlet_spawn([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py[0m:203: in greenlet_spawn
+    [0mresult = context.switch(value)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:5928: in create_all
+    [0mbind._run_ddl_visitor([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/engine/base.py[0m:2467: in _run_ddl_visitor
+    [0m).traverse_single(element)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/visitors.py[0m:661: in traverse_single
+    [0m[94mreturn[39;49;00m meth(obj, **kw)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:962: in visit_metadata
+    [0mcollection = sort_tables_and_constraints([90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py[0m:1394: in sort_tables_and_constraints
+    [0mdependent_on = fkc.referred_table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:4799: in referred_table
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m.elements[[94m0[39;49;00m].column.table[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py[0m:1123: in __get__
+    [0mobj.[91m__dict__[39;49;00m[[96mself[39;49;00m.[91m__name__[39;49;00m] = result = [96mself[39;49;00m.fget(obj)[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3199: in column
+    [0m[94mreturn[39;49;00m [96mself[39;49;00m._resolve_column()[90m[39;49;00m
+[1m[31m/usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py[0m:3222: in _resolve_column
+    [0m[94mraise[39;49;00m exc.NoReferencedTableError([90m[39;49;00m
+[1m[31mE   sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not find table 'food_items' with which to generate a foreign key to target column 'id'[0m
+[33m===================================================== warnings summary =====================================================[0m
+../usr/local/lib/python3.12/site-packages/starlette/formparsers.py:12
+  /usr/local/lib/python3.12/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+[36m[1m================================================= short test summary info ==================================================[0m
+[31mERROR[0m tests/test_auth.py::[1mtest_register_success[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_auth.py::[1mtest_register_duplicate_username[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_auth.py::[1mtest_register_duplicate_email[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_auth.py::[1mtest_register_username_too_short[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_auth.py::[1mtest_register_invalid_username_characters[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_auth.py::[1mtest_register_password_too_short[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_auth.py::[1mtest_register_invalid_email[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_auth.py::[1mtest_login_success[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_auth.py::[1mtest_login_wrong_password[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_auth.py::[1mtest_login_nonexistent_user[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_auth.py::[1mtest_login_wrong_password_same_status_as_wrong_user[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_auth.py::[1mtest_me_authenticated[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_auth.py::[1mtest_me_unauthenticated[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_auth.py::[1mtest_me_invalid_token[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_recipes.py::[1mtest_create_recipe_draft[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_recipes.py::[1mtest_create_recipe_published[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_recipes.py::[1mtest_create_recipe_unauthenticated[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_recipes.py::[1mtest_create_recipe_generates_slug[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_recipes.py::[1mtest_create_recipe_duplicate_slug[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_recipes.py::[1mtest_create_recipe_with_metabolic_tags[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_recipes.py::[1mtest_get_recipe[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_recipes.py::[1mtest_get_draft_recipe_as_anonymous[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_recipes.py::[1mtest_get_nonexistent_recipe[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_recipes.py::[1mtest_list_recipes_only_published[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_recipes.py::[1mtest_list_recipes_vegan_filter[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_recipes.py::[1mtest_update_recipe[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_recipes.py::[1mtest_update_recipe_publish[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_recipes.py::[1mtest_update_recipe_wrong_user[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_recipes.py::[1mtest_delete_recipe[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_recipes.py::[1mtest_delete_recipe_wrong_user[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31mERROR[0m tests/test_recipes.py::[1mtest_delete_recipe_unauthenticated[0m - sqlalchemy.exc.NoReferencedTableError: Foreign key associated with column 'recipe_ingredients.food_item_id' could not f...
+[31m============================================== [33m1 warning[0m, [31m[1m31 errors[0m[31m in 7.56s[0m[31m ===============================================[0m

@@ -28,12 +28,12 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def hash_password(plain: str) -> str:
     """Hash a plain-text password. Store the result, never the original."""
-    return pwd_context.hash(plain)
+    return pwd_context.hash(plain[:72])
 
 
 def verify_password(plain: str, hashed: str) -> bool:
     """Return True if plain matches the stored hash."""
-    return pwd_context.verify(plain, hashed)
+    return pwd_context.verify(plain[:72], hashed)
 
 
 # --- JWT ---

@@ -21,6 +21,7 @@ from app.models.recipe import (
     RecipeStatus,
     RecipeTranslation,
     TranslationStatus,
+    FoodItem,
 )
 from app.models.user import User
 
@@ -34,4 +35,5 @@ __all__ = [
     "TranslationStatus",
     "Difficulty",
     "IngredientUnit",
+    "FoodItem",
 ]
