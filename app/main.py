@@ -11,6 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from app.routers import auth
 
 # Create the main FastAPI instance.
 # The metadata appears in the auto-generated documentation at /api/docs
@@ -46,6 +47,10 @@ async def health_check():
         "instance": settings.instance_name,
         "version": "0.1.0",
     }
+
+
+# --- Routers ---
+app.include_router(auth.router)
 
 
 # --- Root endpoint ---

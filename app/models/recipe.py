@@ -39,16 +39,16 @@ from app.database import Base
 # enforces valid values — you can't accidentally store "Vgean".
 
 class RecipeStatus(str, enum.Enum):
-    DRAFT = "draft"           # only visible to the author
-    PUBLISHED = "published"   # visible to everyone
-    UNLISTED = "unlisted"     # accessible via link, not in feeds
-    DELETED = "deleted"       # soft-deleted, kept for federation
+    DRAFT = "draft"
+    PUBLISHED = "published"
+    UNLISTED = "unlisted"
+    DELETED = "deleted"
 
 
 class TranslationStatus(str, enum.Enum):
-    ORIGINAL = "original"   # the recipe's source language
-    DRAFT = "draft"         # community translation, not yet reviewed
-    REVIEWED = "reviewed"   # translation has been reviewed
+    ORIGINAL = "original"
+    DRAFT = "draft"
+    REVIEWED = "reviewed"
 
 
 class Difficulty(str, enum.Enum):
@@ -58,23 +58,19 @@ class Difficulty(str, enum.Enum):
 
 
 class IngredientUnit(str, enum.Enum):
-    # Weight
     GRAM = "g"
     KILOGRAM = "kg"
     OUNCE = "oz"
     POUND = "lb"
-    # Volume
     MILLILITER = "ml"
     LITER = "l"
     TEASPOON = "tsp"
     TABLESPOON = "tbsp"
     CUP = "cup"
     FLUID_OUNCE = "fl_oz"
-    # Other
     PIECE = "piece"
     PINCH = "pinch"
     TO_TASTE = "to_taste"
-    # No unit (e.g. "3 eggs")
     NONE = ""
 
 
@@ -109,7 +105,7 @@ class Recipe(Base):
 
     # --- Status and visibility ---
     status: Mapped[RecipeStatus] = mapped_column(
-        Enum(RecipeStatus), default=RecipeStatus.DRAFT, nullable=False, index=True
+        Enum(RecipeStatus, name="recipestatustype"), default=RecipeStatus.DRAFT, nullable=False, index=True
     )
 
     # --- Language ---
@@ -122,7 +118,7 @@ class Recipe(Base):
     prep_time_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     cook_time_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     servings: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    difficulty: Mapped[Difficulty | None] = mapped_column(Enum(Difficulty), nullable=True)
+    difficulty: Mapped[Difficulty | None] = mapped_column(Enum(Difficulty, name="difficulttype"), nullable=True)
 
     # --- Dietary tags ---
     # Stored as a PostgreSQL ARRAY of strings.
@@ -210,7 +206,7 @@ class RecipeTranslation(Base):
 
     # --- Translation metadata ---
     status: Mapped[TranslationStatus] = mapped_column(
-        Enum(TranslationStatus),
+        Enum(TranslationStatus, name="translationstatustype"),
         default=TranslationStatus.DRAFT,
         nullable=False,
     )
@@ -261,7 +257,7 @@ class RecipeIngredient(Base):
     # to avoid floating point weirdness (0.1 + 0.2 ≠ 0.3 in floats).
     quantity: Mapped[float | None] = mapped_column(Numeric(10, 3), nullable=True)
     unit: Mapped[IngredientUnit] = mapped_column(
-        Enum(IngredientUnit), default=IngredientUnit.NONE, nullable=False
+        Enum(IngredientUnit, name="ingredientunittype"), default=IngredientUnit.NONE, nullable=False
     )
 
     # Free-text name in the recipe's original language

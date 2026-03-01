@@ -30,37 +30,10 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     # --- ENUM types ---
     # PostgreSQL enums must be created before the tables that use them.
-    # We create them explicitly so downgrade() can drop them cleanly.
-
-    recipe_status = postgresql.ENUM(
-        "draft", "published", "unlisted", "deleted",
-        name="recipestatus",
-        create_type=False,
-    )
-    recipe_status.create(op.get_bind(), checkfirst=True)
-
-    translation_status = postgresql.ENUM(
-        "original", "draft", "reviewed",
-        name="translationstatus",
-        create_type=False,
-    )
-    translation_status.create(op.get_bind(), checkfirst=True)
-
-    difficulty = postgresql.ENUM(
-        "easy", "medium", "hard",
-        name="difficulty",
-        create_type=False,
-    )
-    difficulty.create(op.get_bind(), checkfirst=True)
-
-    ingredient_unit = postgresql.ENUM(
-        "g", "kg", "oz", "lb",
-        "ml", "l", "tsp", "tbsp", "cup", "fl_oz",
-        "piece", "pinch", "to_taste", "",
-        name="ingredientunit",
-        create_type=False,
-    )
-    ingredient_unit.create(op.get_bind(), checkfirst=True)
+    op.execute("CREATE TYPE recipestatus AS ENUM ('draft', 'published', 'unlisted', 'deleted')")
+    op.execute("CREATE TYPE translationstatus AS ENUM ('original', 'draft', 'reviewed')")
+    op.execute("CREATE TYPE difficulty AS ENUM ('easy', 'medium', 'hard')")
+    op.execute("CREATE TYPE ingredientunit AS ENUM ('g', 'kg', 'oz', 'lb', 'ml', 'l', 'tsp', 'tbsp', 'cup', 'fl_oz', 'piece', 'pinch', 'to_taste', '')")
 
     # --- users ---
     op.create_table(
@@ -109,12 +82,12 @@ def upgrade() -> None:
         sa.Column("author_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
         sa.Column("slug", sa.String(256), nullable=False),
         sa.Column("ap_id", sa.String(512), nullable=False),
-        sa.Column("status", sa.Enum("draft", "published", "unlisted", "deleted", name="recipestatus"), nullable=False, server_default="draft"),
+        sa.Column("status", sa.Enum("draft", "published", "unlisted", "deleted", name="recipestatustype"), nullable=False, server_default="draft"),
         sa.Column("original_language", sa.String(10), nullable=False, server_default="en"),
         sa.Column("prep_time_seconds", sa.Integer(), nullable=True),
         sa.Column("cook_time_seconds", sa.Integer(), nullable=True),
         sa.Column("servings", sa.Integer(), nullable=True),
-        sa.Column("difficulty", sa.Enum("easy", "medium", "hard", name="difficulty"), nullable=True),
+        sa.Column("difficulty", sa.Enum("easy", "medium", "hard", name="difficulttype"), nullable=True),
         sa.Column("dietary_tags", postgresql.ARRAY(sa.String()), nullable=False, server_default="{}"),
         sa.Column("metabolic_tags", postgresql.ARRAY(sa.String()), nullable=False, server_default="{}"),
         sa.Column("show_metabolic_disclaimer", sa.Boolean(), nullable=False, server_default="false"),
@@ -140,7 +113,7 @@ def upgrade() -> None:
         sa.Column("title", sa.String(256), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("steps", postgresql.JSONB(), nullable=False, server_default="[]"),
-        sa.Column("status", sa.Enum("original", "draft", "reviewed", name="translationstatus"), nullable=False, server_default="draft"),
+        sa.Column("status", sa.Enum("original", "draft", "reviewed", name="translationstatustype"), nullable=False, server_default="draft"),
         sa.Column("translated_by_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
@@ -156,7 +129,7 @@ def upgrade() -> None:
         sa.Column("recipe_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("recipes.id", ondelete="CASCADE"), nullable=False),
         sa.Column("sort_order", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("quantity", sa.Numeric(10, 3), nullable=True),
-        sa.Column("unit", sa.Enum("g", "kg", "oz", "lb", "ml", "l", "tsp", "tbsp", "cup", "fl_oz", "piece", "pinch", "to_taste", "", name="ingredientunit"), nullable=False, server_default=""),
+        sa.Column("unit", sa.Enum("g", "kg", "oz", "lb", "ml", "l", "tsp", "tbsp", "cup", "fl_oz", "piece", "pinch", "to_taste", "", name="ingredientunittype"), nullable=False, server_default=""),
         sa.Column("name", sa.String(256), nullable=False),
         sa.Column("notes", sa.String(256), nullable=True),
         sa.Column("food_item_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("food_items.id", ondelete="SET NULL"), nullable=True),
@@ -187,7 +160,7 @@ def downgrade() -> None:
     op.drop_table("users")
 
     # Drop enum types last
-    op.execute("DROP TYPE IF EXISTS ingredientunit")
-    op.execute("DROP TYPE IF EXISTS difficulty")
-    op.execute("DROP TYPE IF EXISTS translationstatus")
-    op.execute("DROP TYPE IF EXISTS recipestatus")
+    op.execute("DROP TYPE IF EXISTS ingredientunittype")
+    op.execute("DROP TYPE IF EXISTS difficulttype")
+    op.execute("DROP TYPE IF EXISTS translationstatustype")
+    op.execute("DROP TYPE IF EXISTS recipestatustype")

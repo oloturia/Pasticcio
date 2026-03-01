@@ -22,8 +22,10 @@ pydantic-settings~=2.3.0
 
 # --- Database ---
 sqlalchemy[asyncio]~=2.0.30
-# Async driver for PostgreSQL
+# Async driver for PostgreSQL (used by the app at runtime)
 asyncpg~=0.29.0
+# Sync driver for PostgreSQL (used by Alembic to run migrations)
+psycopg2-binary~=2.9.9
 # Database migrations
 alembic~=1.13.0
 
@@ -47,3 +49,11 @@ python-jose[cryptography]~=3.3.0
 isodate~=0.6.1
 # URL-friendly slugs from unicode text
 python-slugify~=8.0.0
+
+# --- Testing ---
+# Test framework
+pytest~=8.2.0
+# Async test support for pytest
+pytest-asyncio~=0.23.0
+# Async test utilities
+anyio~=4.4.0

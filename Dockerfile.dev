@@ -19,7 +19,8 @@ FROM python:3.12-slim
 # PYTHONDONTWRITEBYTECODE=1  → don't create .pyc files (useless in containers)
 # PYTHONUNBUFFERED=1         → print() output appears immediately in logs
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
 
 # --- Working directory inside the container ---
 # All subsequent commands run from /app
@@ -45,6 +46,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # podman-compose.yml, so this line only serves as a fallback
 # if the image is used standalone.
 COPY app/ ./app/
+COPY alembic/ ./alembic/
+COPY alembic.ini .
+COPY pytest.ini .
 
 # --- Exposed port ---
 # Documents that the process inside the container uses port 8000.

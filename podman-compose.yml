@@ -37,6 +37,10 @@ services:
     # and uvicorn restarts automatically.
     volumes:
       - ./app:/app/app
+      - ./alembic:/app/alembic
+      - ./alembic.ini:/app/alembic.ini
+      - ./tests:/app/tests
+      - ./pytest.ini:/app/pytest.ini
       # Separate volume for uploaded files (recipe images)
       - pasticcio-media:/app/media
 
@@ -106,7 +110,7 @@ services:
   # ----------------------------------------------------------
   db:
     # Official PostgreSQL 15 image (alpine = minimal size)
-    image: postgres:15-alpine
+    image: docker.io/postgres:15-alpine
 
     container_name: pasticcio-db
 
@@ -141,7 +145,7 @@ services:
   # redis — cache and task queue for Celery
   # ----------------------------------------------------------
   redis:
-    image: redis:7-alpine
+    image: docker.io/redis:7-alpine
 
     container_name: pasticcio-redis
 
@@ -175,13 +179,13 @@ services:
   # if we want to test federation. For pure API development, you can
   # skip it and use http://localhost:8000 directly.
   caddy:
-    image: caddy:2-alpine
+    image: docker.io/caddy:2-alpine
 
     container_name: pasticcio-caddy
 
     ports:
-      - "80:80"
-      - "443:443"
+      - "8080:80"
+      - "8443:443"
 
     volumes:
       - ./Caddyfile.dev:/etc/caddy/Caddyfile:ro
