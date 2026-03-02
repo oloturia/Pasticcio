@@ -97,5 +97,9 @@ class User(Base):
         cascade="all, delete-orphan",
     )
 
+    # --- Follower ---
+    followers: Mapped[list["Follower"]] = relationship(
+        "Follower", back_populates="followee", cascade="all, delete-orphan"
+    )
     def __repr__(self) -> str:
         return f"<User {self.username}>"

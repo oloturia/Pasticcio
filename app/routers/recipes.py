@@ -59,6 +59,7 @@ class TranslationIn(BaseModel):
     title: str
     description: str | None = None
     steps: list[StepSchema] = []
+    categories: list[str] = []
 
 
 class RecipeCreateRequest(BaseModel):
@@ -111,6 +112,7 @@ class TranslationOut(BaseModel):
     description: str | None
     steps: list[dict]
     status: str
+    categories: list[str]
 
     model_config = {"from_attributes": True}
 
@@ -232,6 +234,7 @@ async def create_recipe(
         steps=[s.model_dump() for s in data.translation.steps],
         status=TranslationStatus.ORIGINAL,
         translated_by_id=None,
+        categories=data.translation.categories,
     )
     db.add(translation)
 

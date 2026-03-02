@@ -40,7 +40,7 @@ cryptography~=42.0.0
 
 # --- Auth ---
 # Password hashing
-passlib[bcrypt]~=1.7.4
+bcrypt~=4.1.0
 # JWT
 python-jose[cryptography]~=3.3.0
 

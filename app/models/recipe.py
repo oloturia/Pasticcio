@@ -28,6 +28,10 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+categories: Mapped[list[str]] = mapped_column(
+    ARRAY(String), default=list, nullable=False
+)
+
 from app.database import Base
 
 
@@ -155,6 +159,14 @@ class Recipe(Base):
     # request. Invalidated whenever the recipe is updated.
     ap_object: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
+
+    # Categories for this translation (used as AP hashtags).
+    # Stored per-translation because category names vary by language
+    # (e.g. "primo" in Italian, "first course" in English).
+    categories: Mapped[list[str]] = mapped_column(
+        ARRAY(String), default=list, nullable=False
+    )
+    
     # --- Timestamps ---
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -218,6 +230,10 @@ class RecipeTranslation(Base):
     # This avoids a separate steps table for now. If we need
     # per-step media attachments later, we can migrate to a table.
     steps: Mapped[list[dict]] = mapped_column(JSONB, default=list, nullable=False)
+
+    # Categories for this translation (used as AP hashtags).
+    # Stored per-translation because names vary by language.
+    categories: Mapped[list[str]] = mapped_column(ARRAY(String), default=list, nullable=False)
 
     # --- Translation metadata ---
     status: Mapped[TranslationStatus] = mapped_column(

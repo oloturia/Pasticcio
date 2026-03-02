@@ -15,6 +15,7 @@ from pydantic import BaseModel, EmailStr, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.ap.signatures import generate_rsa_keypair
 from app.auth import create_access_token, decode_access_token, hash_password, verify_password
 from app.config import settings
 from app.database import get_db
@@ -119,8 +120,13 @@ async def get_current_user(
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
-    """Create a new local user account."""
+    """
+    Create a new local user account.
 
+    Generates an RSA key pair for ActivityPub HTTP Signatures
+    at registration time. The private key is stored encrypted
+    in the database and never exposed via the API.
+    """
     if not settings.enable_registrations:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -140,8 +146,13 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
         )
 
     user_id = uuid.uuid4()
-    # The canonical ActivityPub URL for this user
     ap_id = f"https://{settings.instance_domain}/users/{data.username}"
+
+    # Generate RSA key pair for ActivityPub HTTP Signatures.
+    # ~50ms on modern hardware — acceptable for a registration call.
+    # The private key stays on this server; the public key is shared
+    # via the Actor endpoint so other servers can verify our requests.
+    private_key_pem, public_key_pem = generate_rsa_keypair()
 
     user = User(
         id=user_id,
@@ -151,9 +162,11 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
         hashed_password=hash_password(data.password),
         ap_id=ap_id,
         is_remote=False,
+        public_key=public_key_pem,
+        private_key=private_key_pem,
     )
     db.add(user)
-    await db.flush()  # write to DB within the transaction, but don't commit yet
+    await db.flush()
 
     return user
 

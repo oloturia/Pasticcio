@@ -36,4 +36,7 @@ __all__ = [
     "Difficulty",
     "IngredientUnit",
     "FoodItem",
+    "Follower",
 ]
+
+from app.models.follower import Follower
