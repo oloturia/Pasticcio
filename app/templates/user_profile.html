@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}{{ user.display_name or user.username }} — Pasticcio{% endblock %}
+
+{% block content %}
+<article>
+    <h1>{{ user.display_name or user.username }}</h1>
+
+    <p class="meta">
+        <a href="{{ user.ap_id }}">@{{ user.username }}@{{ instance_domain }}</a>
+    </p>
+
+    {% if user.bio %}
+    <p class="bio">{{ user.bio }}</p>
+    {% endif %}
+
+    <h2>Recent recipes</h2>
+
+    {% if recipes %}
+    <ul class="recipe-list">
+        {% for recipe in recipes %}
+        <li>
+            <a href="/recipes/{{ recipe.slug }}">{{ recipe.title or recipe.slug }}</a>
+            {% if recipe.published_at %}
+            <span class="date">{{ recipe.published_at[:10] }}</span>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="meta">No published recipes yet.</p>
+    {% endif %}
+
+    <p class="ap-link">
+        <a href="{{ user.ap_id }}">ActivityPub actor profile</a>
+    </p>
+</article>
+{% endblock %}

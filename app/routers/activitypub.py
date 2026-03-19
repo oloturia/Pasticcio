@@ -1,35 +1,16 @@
 # ============================================================
 # app/routers/activitypub.py — ActivityPub endpoints
 # ============================================================
-#
-# Endpoints:
-#   GET  /users/{username}          → Actor profile (JSON-LD)
-#   GET  /users/{username}/outbox   → Published activities
-#   POST /users/{username}/inbox    → Receive incoming activities
-#   GET  /users/{username}/followers → Followers collection
-#   GET  /inbox                     → Shared inbox (delivery optimisation)
-#
-# Content negotiation:
-#   AP clients send Accept: application/activity+json
-#   Browsers send Accept: text/html
-#   We serve AP JSON for the former, redirect to HTML for the latter.
-#
-# Security:
-#   - Incoming activities are verified via HTTP Signatures
-#   - Only Accept/Reject Follow for now; other types are queued
-#     to Celery for async processing (to keep inbox responses fast)
-
-from __future__ import annotations
 
 import json
-import uuid
-from datetime import datetime, timezone
+import logging
+import re
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.responses import JSONResponse
-from sqlalchemy import func as sql_func, select
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from app.ap.builder import (
@@ -44,63 +25,77 @@ from app.ap.builder import (
 from app.ap.signatures import verify_request
 from app.config import settings
 from app.database import get_db
+from app.models.cooked_this import CookedThis, CookedThisStatus
 from app.models.follower import Follower
+from app.models.reaction import Reaction, ReactionType
 from app.models.recipe import Recipe, RecipeStatus
 from app.models.user import User
+from app.ap.ratelimit import check_rate_limit
+from fastapi.templating import Jinja2Templates
+from fastapi import Request as FastAPIRequest
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["activitypub"])
 
-# Content type for ActivityPub responses
 AP_CONTENT_TYPE = "application/activity+json"
+PAGE_SIZE = 20
 
+templates = Jinja2Templates(directory="app/templates")
 
 # ============================================================
 # Helpers
 # ============================================================
 
-def _ap_response(data: dict, status_code: int = 200) -> JSONResponse:
-    """Return a JSONResponse with the ActivityPub content type."""
-    return JSONResponse(content=data, status_code=status_code, media_type=AP_CONTENT_TYPE)
+async def _fetch_remote_actor(actor_url: str) -> dict | None:
+    """Fetch a remote AP actor and return its JSON, or None on failure."""
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                actor_url,
+                headers={"Accept": AP_CONTENT_TYPE},
+                follow_redirects=True,
+            )
+            if resp.status_code == 200:
+                return resp.json()
+    except httpx.RequestError as exc:
+        logger.warning("Failed to fetch remote actor %s: %s", actor_url, exc)
+    return None
+
+
+async def _deliver_activity(inbox_url: str, activity: dict, sender: User) -> None:
+    """Sign and POST an AP activity to a remote inbox."""
+    from app.ap.signatures import sign_request
+    body = json.dumps(activity).encode("utf-8")
+    key_id = f"{sender.ap_id}#main-key"
+    headers = sign_request(
+        method="post",
+        url=inbox_url,
+        body=body,
+        private_key_pem=sender.private_key,
+        key_id=key_id,
+    )
+    headers["Content-Type"] = AP_CONTENT_TYPE
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            await client.post(inbox_url, content=body, headers=headers)
+    except httpx.RequestError as exc:
+        logger.warning("Failed to deliver to %s: %s", inbox_url, exc)
 
 
 async def _get_local_user(username: str, db: AsyncSession) -> User:
-    """Fetch a local (non-remote) user by username or raise 404."""
+    """Return a local User or raise 404."""
     result = await db.execute(
-        select(User).where(User.username == username, User.is_remote == False)  # noqa: E712
+        select(User).where(User.username == username, User.is_remote.is_(False))
     )
     user = result.scalar_one_or_none()
-    if user is None:
+    if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
 
-async def _fetch_remote_actor(actor_url: str) -> dict | None:
-    """
-    Fetch an ActivityPub Actor from a remote server.
-
-    Used to retrieve the public key of the sender when verifying
-    an incoming HTTP Signature.
-
-    Returns the actor dict or None if the fetch fails.
-    We use a short timeout — if the remote server is slow,
-    we reject the request rather than blocking our inbox.
-    """
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(
-                actor_url,
-                headers={"Accept": "application/activity+json"},
-                follow_redirects=True,
-            )
-            if response.status_code == 200:
-                return response.json()
-    except Exception:
-        pass
-    return None
-
-
 # ============================================================
-# Actor endpoint
+# Actor
 # ============================================================
 
 @router.get("/users/{username}")
@@ -110,18 +105,57 @@ async def get_actor(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Return the ActivityPub Actor profile for a local user.
-
+    Return the AP Actor profile for a local user.
     Content negotiation:
-    - AP clients (Mastodon) send Accept: application/activity+json
-      → we return the AP JSON
-    - Browsers send Accept: text/html
-      → in future we'll redirect to the HTML profile page;
-        for now we return the AP JSON for everyone
+      - Accept: text/html            → HTML profile page (for browsers)
+      - Accept: application/activity+json → AP Actor JSON (for federation)
     """
     user = await _get_local_user(username, db)
+
+    accept = request.headers.get("accept", "")
+
+    if "text/html" in accept and "application/activity+json" not in accept:
+        from app.models.recipe import RecipeTranslation
+        recipes_result = await db.execute(
+            select(Recipe)
+            .where(
+                Recipe.author_id == user.id,
+                Recipe.status == RecipeStatus.PUBLISHED,
+            )
+            .order_by(Recipe.published_at.desc())
+            .limit(10)
+        )
+        recipes = recipes_result.scalars().all()
+
+        recipe_list = []
+        for recipe in recipes:
+            trans_result = await db.execute(
+                select(RecipeTranslation).where(
+                    RecipeTranslation.recipe_id == recipe.id,
+                    RecipeTranslation.language == recipe.original_language,
+                ).limit(1)
+            )
+            translation = trans_result.scalar_one_or_none()
+            recipe_list.append({
+                "slug": recipe.slug,
+                "title": translation.title if translation else None,
+                "published_at": recipe.published_at.isoformat() if recipe.published_at else None,
+            })
+
+        return templates.TemplateResponse(
+            "user_profile.html",
+            {
+                "request": request,
+                "user": user,
+                "recipes": recipe_list,
+                "instance_domain": settings.instance_domain,
+            },
+        )
+
+    # Default: AP JSON for federation clients
     actor = build_actor(user, settings.instance_domain)
-    return _ap_response(actor)
+    return Response(content=json.dumps(actor), media_type=AP_CONTENT_TYPE)
+
 
 
 # ============================================================
@@ -134,98 +168,65 @@ async def get_outbox(
     page: int | None = None,
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    Return a user's published activities.
-
-    Without ?page: returns the OrderedCollection root (just the count
-    and a pointer to page 1). This is what AP clients fetch first.
-
-    With ?page=N: returns an OrderedCollectionPage with actual activities.
-    """
+    """Return an OrderedCollection of Create{Article} activities."""
     user = await _get_local_user(username, db)
-    actor_url = f"https://{settings.instance_domain}/users/{username}"
+    outbox_url = f"https://{settings.instance_domain}/users/{username}/outbox"
 
-    # Count total published recipes
     count_result = await db.execute(
-        select(sql_func.count(Recipe.id)).where(
+        select(func.count()).where(
             Recipe.author_id == user.id,
             Recipe.status == RecipeStatus.PUBLISHED,
         )
     )
-    total = count_result.scalar_one()
+    total = count_result.scalar() or 0
 
-    # Without ?page, return just the collection envelope
     if page is None:
-        return _ap_response(build_outbox_collection(actor_url, total))
+        collection = build_outbox_collection(outbox_url, total)
+        return Response(content=json.dumps(collection), media_type=AP_CONTENT_TYPE)
 
-    # With ?page=N, return the actual activities
-    per_page = 20
-    offset = (page - 1) * per_page
-
-    recipes_result = await db.execute(
+    result = await db.execute(
         select(Recipe)
-        .where(
-            Recipe.author_id == user.id,
-            Recipe.status == RecipeStatus.PUBLISHED,
-        )
-        .options(
-            selectinload(Recipe.author),
-            selectinload(Recipe.translations),
-            selectinload(Recipe.ingredients),
-            selectinload(Recipe.photos),
-        )
+        .where(Recipe.author_id == user.id, Recipe.status == RecipeStatus.PUBLISHED)
+        .options(selectinload(Recipe.translations), selectinload(Recipe.photos))
         .order_by(Recipe.published_at.desc())
-        .offset(offset)
-        .limit(per_page)
+        .offset((page - 1) * PAGE_SIZE)
+        .limit(PAGE_SIZE)
     )
-    recipes = recipes_result.scalars().all()
+    recipes = result.scalars().all()
 
-    # Build Create{Article} activities for each recipe.
-    # We use the first (original language) translation for the AP object.
     activities = []
     for recipe in recipes:
-        if not recipe.translations:
-            continue
-        # Prefer the translation matching the user's preferred language,
-        # fall back to the first available translation
         translation = next(
             (t for t in recipe.translations if t.language == user.preferred_language),
-            recipe.translations[0],
+            recipe.translations[0] if recipe.translations else None,
         )
+        if not translation:
+            continue
         article = build_recipe_article(recipe, translation, settings.instance_domain)
+        actor_url = f"https://{settings.instance_domain}/users/{username}"
         activities.append(build_create_activity(actor_url, article))
 
-    return _ap_response(
-        build_outbox_page(actor_url, activities, total, page, per_page)
-    )
+    collection_page = build_outbox_page(outbox_url, activities, total, page, PAGE_SIZE)
+    return Response(content=json.dumps(collection_page), media_type=AP_CONTENT_TYPE)
 
 
 # ============================================================
-# Followers collection
+# Followers
 # ============================================================
 
 @router.get("/users/{username}/followers")
-async def get_followers(
-    username: str,
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Return the followers collection for a user.
-
-    We return only the count, not the actual list of follower AP IDs.
-    This is a deliberate privacy choice: enumerating followers would
-    expose who follows whom to any server that asks.
-    Mastodon does the same.
-    """
+async def get_followers(username: str, db: AsyncSession = Depends(get_db)):
+    """Return follower count only (no enumeration for privacy)."""
     user = await _get_local_user(username, db)
-    actor_url = f"https://{settings.instance_domain}/users/{username}"
+    followers_url = f"https://{settings.instance_domain}/users/{username}/followers"
 
     count_result = await db.execute(
-        select(sql_func.count()).where(Follower.followee_id == user.id)
+        select(func.count()).where(Follower.followee_id == user.id)
     )
-    total = count_result.scalar_one()
+    total = count_result.scalar() or 0
 
-    return _ap_response(build_followers_collection(actor_url, total))
+    collection = build_followers_collection(followers_url, total)
+    return Response(content=json.dumps(collection), media_type=AP_CONTENT_TYPE)
 
 
 # ============================================================
@@ -233,209 +234,294 @@ async def get_followers(
 # ============================================================
 
 @router.post("/users/{username}/inbox", status_code=202)
-async def user_inbox(
+async def inbox(
     username: str,
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Receive an ActivityPub activity directed at a local user.
-
-    We handle these activity types synchronously (they're fast):
-      - Follow   → store follower, send Accept back
-      - Undo{Follow} → remove follower
-
-    Everything else (Like, Announce, Create, Update, Delete from
-    remote) is acknowledged with 202 Accepted and would be queued
-    to Celery for async processing in a future iteration.
-
-    HTTP Signature verification:
-    We verify the signature on all incoming POST requests.
-    If the signature is invalid or the sender's key can't be
-    fetched, we return 401.
+    Receive an AP activity from a remote server.
+    Handles: Follow, Undo, Like, Announce, Create{Note}.
     """
     user = await _get_local_user(username, db)
-
-    # --- Parse body ---
+    body = await request.body()
+    
     try:
-        body = await request.body()
-        activity = json.loads(body)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid JSON body")
-
-    # --- Verify HTTP Signature ---
-    # Get all headers as a lowercased dict for signature verification
-    headers_lower = {k.lower(): v for k, v in request.headers.items()}
-
-    actor_url = activity.get("actor")
+        raw = json.loads(body)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+            
+    # Check rate limits before processing the activity
+    client_ip = request.client.host if request.client else "unknown"
+    actor_url_for_limit = raw.get("actor", "unknown")
+    allowed, reason = await check_rate_limit(client_ip, actor_url_for_limit)
+    if not allowed:
+        raise HTTPException(status_code=429, detail=reason)
+        
+    actor_url = raw.get("actor")
     if not actor_url:
-        raise HTTPException(status_code=400, detail="Missing actor in activity")
+        raise HTTPException(status_code=400, detail="Missing actor field")
 
-    # Fetch the remote actor to get their public key
     remote_actor = await _fetch_remote_actor(actor_url)
-    if remote_actor is None:
-        raise HTTPException(status_code=401, detail="Could not fetch actor for signature verification")
+    if not remote_actor:
+        raise HTTPException(status_code=400, detail="Could not fetch remote actor")
 
-    public_key_pem = (
-        remote_actor.get("publicKey", {}).get("publicKeyPem")
-        if isinstance(remote_actor.get("publicKey"), dict)
-        else None
-    )
-    if not public_key_pem:
-        raise HTTPException(status_code=401, detail="Actor has no public key")
-
-    path = request.url.path
-    if request.url.query:
-        path += f"?{request.url.query}"
-
-    if not verify_request("post", path, headers_lower, public_key_pem):
+    public_key_pem = remote_actor.get("publicKey", {}).get("publicKeyPem", "")
+    if not verify_request(
+        method=request.method.lower(),
+        path=str(request.url.path),
+        headers=dict(request.headers),
+        public_key_pem=public_key_pem,
+    ):
         raise HTTPException(status_code=401, detail="Invalid HTTP Signature")
 
-    # --- Dispatch by activity type ---
-    activity_type = activity.get("type", "")
+    activity_type = raw.get("type", "")
 
+    # ----------------------------------------------------------
+    # Follow
+    # ----------------------------------------------------------
     if activity_type == "Follow":
-        await _handle_follow(user, activity, remote_actor, db)
-
-    elif activity_type == "Undo":
-        obj = activity.get("object", {})
-        if isinstance(obj, dict) and obj.get("type") == "Follow":
-            await _handle_unfollow(user, actor_url, db)
-        # Other Undo types (Like, Announce) — acknowledge and ignore for now
-
-    # All other types: 202 Accepted, process later
-    # (Like, Announce, Create, Update, Delete from remote servers)
-
-    return {"status": "accepted"}
-
-
-@router.post("/inbox", status_code=202)
-async def shared_inbox(
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Shared inbox endpoint for efficient delivery.
-
-    Large Fediverse servers (Mastodon instances with many users)
-    use the shared inbox to deliver a single copy of an activity
-    that targets multiple local users, instead of POSTing to each
-    user's inbox individually.
-
-    For now we just acknowledge and return 202. Full shared inbox
-    processing will be implemented when we add Celery task routing.
-    """
-    return {"status": "accepted"}
-
-
-# ============================================================
-# Activity handlers
-# ============================================================
-
-async def _handle_follow(
-    followee: User,
-    activity: dict,
-    remote_actor: dict,
-    db: AsyncSession,
-) -> None:
-    """
-    Process a Follow activity.
-
-    1. Store the follower in our database
-    2. Send an Accept{Follow} back to the remote actor's inbox
-    """
-    actor_url = activity.get("actor")
-
-    # Get the remote actor's inbox URL
-    # Prefer sharedInbox for efficiency, fall back to personal inbox
-    endpoints = remote_actor.get("endpoints", {})
-    inbox_url = (
-        endpoints.get("sharedInbox")
-        or remote_actor.get("inbox")
-    )
-    if not inbox_url:
-        return  # Can't send Accept without an inbox URL
-
-    # Upsert the follower (ignore if already following)
-    existing = await db.execute(
-        select(Follower).where(
-            Follower.followee_id == followee.id,
-            Follower.follower_ap_id == actor_url,
-        )
-    )
-    if existing.scalar_one_or_none() is None:
+        inbox_url = remote_actor.get("inbox", "")
         follower = Follower(
-            followee_id=followee.id,
+            followee_id=user.id,
             follower_ap_id=actor_url,
             follower_inbox=inbox_url,
         )
-        db.add(follower)
-        await db.flush()
+        try:
+            db.add(follower)
+            await db.flush()
+        except IntegrityError:
+            await db.rollback()
 
-    # Send Accept{Follow} back
-    actor_url_local = f"https://{settings.instance_domain}/users/{followee.username}"
-    accept = build_accept_activity(actor_url_local, activity)
+        actor_self_url = f"https://{settings.instance_domain}/users/{username}"
+        accept = build_accept_activity(actor_self_url, raw)
+        await _deliver_activity(inbox_url, accept, user)
+        return Response(status_code=202)
 
-    await _deliver_activity(
-        activity=accept,
-        inbox_url=inbox_url,
-        sender=followee,
-    )
+    # ----------------------------------------------------------
+    # Undo
+    # ----------------------------------------------------------
+    if activity_type == "Undo":
+        obj = raw.get("object", {})
+        obj_type = obj.get("type") if isinstance(obj, dict) else None
 
+        if obj_type == "Follow":
+            result = await db.execute(
+                select(Follower).where(
+                    Follower.followee_id == user.id,
+                    Follower.follower_ap_id == actor_url,
+                )
+            )
+            follower = result.scalar_one_or_none()
+            if follower:
+                await db.delete(follower)
+                await db.flush()
 
-async def _handle_unfollow(
-    followee: User,
-    follower_ap_id: str,
-    db: AsyncSession,
-) -> None:
-    """Remove a follower from the database."""
-    result = await db.execute(
-        select(Follower).where(
-            Follower.followee_id == followee.id,
-            Follower.follower_ap_id == follower_ap_id,
+        elif obj_type in ("Like", "Announce"):
+            reaction_type = ReactionType.LIKE if obj_type == "Like" else ReactionType.ANNOUNCE
+            result = await db.execute(
+                select(Reaction).where(
+                    Reaction.actor_ap_id == actor_url,
+                    Reaction.reaction_type == reaction_type,
+                )
+            )
+            reaction = result.scalar_one_or_none()
+            if reaction:
+                await db.delete(reaction)
+                await db.flush()
+
+        return Response(status_code=202)
+
+    # ----------------------------------------------------------
+    # Like
+    # ----------------------------------------------------------
+    if activity_type == "Like":
+        obj = raw.get("object")
+        if not isinstance(obj, str):
+            obj = obj.get("id") if isinstance(obj, dict) else None
+        if obj:
+            result = await db.execute(select(Recipe).where(Recipe.ap_id == obj))
+            recipe = result.scalar_one_or_none()
+            if recipe:
+                reaction = Reaction(
+                    recipe_id=recipe.id,
+                    actor_ap_id=actor_url,
+                    reaction_type=ReactionType.LIKE,
+                    activity_ap_id=raw.get("id"),
+                )
+                try:
+                    db.add(reaction)
+                    await db.flush()
+                except IntegrityError:
+                    await db.rollback()
+        return Response(status_code=202)
+
+    # ----------------------------------------------------------
+    # Announce
+    # ----------------------------------------------------------
+    if activity_type == "Announce":
+        obj = raw.get("object")
+        if not isinstance(obj, str):
+            obj = obj.get("id") if isinstance(obj, dict) else None
+        if obj:
+            result = await db.execute(select(Recipe).where(Recipe.ap_id == obj))
+            recipe = result.scalar_one_or_none()
+            if recipe:
+                reaction = Reaction(
+                    recipe_id=recipe.id,
+                    actor_ap_id=actor_url,
+                    reaction_type=ReactionType.ANNOUNCE,
+                    activity_ap_id=raw.get("id"),
+                )
+                try:
+                    db.add(reaction)
+                    await db.flush()
+                except IntegrityError:
+                    await db.rollback()
+        return Response(status_code=202)
+
+    # ----------------------------------------------------------
+    # Create{Note} — incoming comment / CookedThis
+    # ----------------------------------------------------------
+    if activity_type == "Create":
+        obj = raw.get("object", {})
+        if not isinstance(obj, dict) or obj.get("type") != "Note":
+            return Response(status_code=202)
+
+        in_reply_to = obj.get("inReplyTo")
+        if not in_reply_to:
+            return Response(status_code=202)
+
+        # Strip HTML tags — store plain text only
+        raw_content = obj.get("content", "") or obj.get("name", "") or ""
+        plain_content = re.sub(r"<[^>]+>", "", raw_content).strip()
+        if not plain_content:
+            return Response(status_code=202)
+
+        moderation_on = settings.comments_moderation == "on"
+        initial_status = (
+            CookedThisStatus.PENDING if moderation_on
+            else CookedThisStatus.PUBLISHED
         )
-    )
-    follower = result.scalar_one_or_none()
-    if follower:
-        await db.delete(follower)
+
+        # Find what this Note is replying to
+        recipe_id = None
+        parent_id = None
+
+        recipe_result = await db.execute(
+            select(Recipe).where(Recipe.ap_id == in_reply_to)
+        )
+        recipe = recipe_result.scalar_one_or_none()
+
+        if recipe:
+            recipe_id = recipe.id
+        else:
+            # Maybe it replies to another local comment
+            parent_result = await db.execute(
+                select(CookedThis).where(CookedThis.ap_id == in_reply_to)
+            )
+            parent_comment = parent_result.scalar_one_or_none()
+            if parent_comment:
+                recipe_id = parent_comment.recipe_id
+                parent_id = parent_comment.id
+            else:
+                # Not a reply to our content — ignore
+                return Response(status_code=202)
+
+        note_ap_id = obj.get("id")
+
+        # Deduplicate
+        if note_ap_id:
+            existing = await db.execute(
+                select(CookedThis).where(CookedThis.ap_id == note_ap_id)
+            )
+            if existing.scalar_one_or_none():
+                return Response(status_code=202)
+
+        comment = CookedThis(
+            recipe_id=recipe_id,
+            actor_ap_id=actor_url,
+            ap_id=note_ap_id,
+            in_reply_to=in_reply_to,
+            parent_id=parent_id,
+            content=plain_content,
+            is_remote=True,
+            status=initial_status,
+        )
+        db.add(comment)
         await db.flush()
+        return Response(status_code=202)
+    # ----------------------------------------------------------
+    # Update{Note} — remote actor edited a comment
+    # ----------------------------------------------------------
+    if activity_type == "Update":
+        obj = raw.get("object", {})
+        if not isinstance(obj, dict) or obj.get("type") != "Note":
+            return Response(status_code=202)
+
+        note_ap_id = obj.get("id")
+        if not note_ap_id:
+            return Response(status_code=202)
+
+        # Strip HTML tags from updated content
+        raw_content = obj.get("content", "") or obj.get("name", "") or ""
+        plain_content = re.sub(r"<[^>]+>", "", raw_content).strip()
+        if not plain_content:
+            return Response(status_code=202)
+
+        result = await db.execute(
+            select(CookedThis).where(
+                CookedThis.ap_id == note_ap_id,
+                CookedThis.actor_ap_id == actor_url,  # only the original author can update
+            )
+        )
+        comment = result.scalar_one_or_none()
+        if comment:
+            comment.content = plain_content
+            await db.flush()
+
+        return Response(status_code=202)
+
+    # ----------------------------------------------------------
+    # Delete{Note} — remote actor deleted a comment
+    # ----------------------------------------------------------
+    if activity_type == "Delete":
+        obj = raw.get("object")
+
+        # Mastodon sends the object as a plain string (just the AP ID)
+        # other servers may send a dict with "id" and "type"
+        if isinstance(obj, str):
+            note_ap_id = obj
+        elif isinstance(obj, dict):
+            note_ap_id = obj.get("id")
+        else:
+            return Response(status_code=202)
+
+        if not note_ap_id:
+            return Response(status_code=202)
+
+        result = await db.execute(
+            select(CookedThis).where(
+                CookedThis.ap_id == note_ap_id,
+                CookedThis.actor_ap_id == actor_url,  # only the original author can delete
+            )
+        )
+        comment = result.scalar_one_or_none()
+        if comment:
+            await db.delete(comment)
+            await db.flush()
+
+        return Response(status_code=202)
+    # All other types — acknowledge
+    logger.debug("Unhandled activity type: %s", activity_type)
+    return Response(status_code=202)
 
 
-async def _deliver_activity(
-    activity: dict,
-    inbox_url: str,
-    sender: User,
-) -> None:
-    """
-    Deliver an ActivityPub activity to a remote inbox via HTTP POST.
+# ============================================================
+# Shared inbox
+# ============================================================
 
-    Signs the request with the sender's private key so the receiver
-    can verify it really came from us.
-
-    This is called synchronously for Accept{Follow} because the
-    remote server is waiting for it. For bulk delivery (new recipes
-    to all followers) we'll use Celery tasks instead.
-    """
-    from app.ap.signatures import sign_request
-
-    if not sender.private_key:
-        return  # Local user with no key — shouldn't happen but be safe
-
-    key_id = f"https://{settings.instance_domain}/users/{sender.username}#main-key"
-    body = json.dumps(activity).encode("utf-8")
-
-    headers = sign_request(
-        method="post",
-        url=inbox_url,
-        body=body,
-        private_key_pem=sender.private_key,
-        key_id=key_id,
-    )
-    headers["Content-Type"] = AP_CONTENT_TYPE
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            await client.post(inbox_url, content=body, headers=headers)
-    except Exception:
-        # Delivery failure is not fatal — in production we'd retry via Celery
-        pass
+@router.post("/inbox", status_code=202)
+async def shared_inbox(request: Request):
+    """Shared inbox stub — acknowledge all incoming activities."""
+    return Response(status_code=202)

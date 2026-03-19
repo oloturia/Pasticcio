@@ -334,3 +334,43 @@ def build_followers_collection(actor_url: str, total: int) -> dict:
         "id": f"{actor_url}/followers",
         "totalItems": total,
     }
+
+def build_note_activity(
+    actor_url: str,
+    note_ap_id: str,
+    content: str,
+    in_reply_to: str | None,
+    recipe_ap_id: str,
+) -> dict:
+    """
+    Build a Create{Note} activity for a local CookedThis comment.
+
+    Addressing follows AP conventions for public replies:
+      - "to": the recipe AP ID (the thing being replied to)
+      - "cc": the public stream, so followers see it in their timeline
+    """
+    note = {
+        "@context": AP_CONTEXT,
+        "type": "Note",
+        "id": note_ap_id,
+        "attributedTo": actor_url,
+        "inReplyTo": in_reply_to,
+        "content": content,
+        "to": [recipe_ap_id],
+        "cc": ["https://www.w3.org/ns/activitystreams#Public"],
+        "tag": [
+            {
+                "type": "Hashtag",
+                "name": "#CookedThis",
+            }
+        ],
+    }
+    return {
+        "@context": AP_CONTEXT,
+        "type": "Create",
+        "id": f"{note_ap_id}/activity",
+        "actor": actor_url,
+        "object": note,
+        "to": note["to"],
+        "cc": note["cc"],
+    }

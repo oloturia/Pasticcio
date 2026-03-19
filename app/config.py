@@ -1,22 +1,11 @@
 # ============================================================
 # app/config.py — application configuration
 # ============================================================
-#
-# Pydantic Settings automatically reads environment variables
-# (or the .env file) and validates them. If a required variable
-# is missing, the app won't start and will show a clear error.
-#
-# Usage:
-#   from app.config import settings
-#   print(settings.instance_name)
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    # Pydantic Settings looks for these variables in the environment
-    # or in the .env file (thanks to model_config below)
-
     # --- Database ---
     database_url: str
 
@@ -38,6 +27,20 @@ class Settings(BaseSettings):
     enable_registrations: bool = True
     enable_nutrition: bool = True
 
+    # --- Comments moderation ---
+    # "off" → federated comments are published immediately
+    # "on"  → federated comments arrive as "pending" and require
+    #          approval from the recipe author before becoming visible
+    comments_moderation: str = "off"
+
+    # --- AP inbox rate limiting ---
+    # Per-IP: max requests allowed in the time window (seconds)
+    inbox_ratelimit_ip_max: int = 300
+    inbox_ratelimit_ip_window: int = 300  # 5 minutes
+    # Per-domain: max requests from the same remote server
+    inbox_ratelimit_domain_max: int = 600
+    inbox_ratelimit_domain_window: int = 300  # 5 minutes
+
     # --- Storage ---
     storage_backend: str = "local"  # "local" or "s3"
     media_root: str = "/app/media"
@@ -52,8 +55,6 @@ class Settings(BaseSettings):
     environment: str = "development"
     debug: bool = False
 
-    # Configuration: read from .env file if it exists,
-    # but real environment variables take priority
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -61,5 +62,4 @@ class Settings(BaseSettings):
     )
 
 
-# Singleton instance — import this throughout the project
 settings = Settings()

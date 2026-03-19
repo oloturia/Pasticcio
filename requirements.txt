@@ -50,6 +50,9 @@ isodate~=0.6.1
 # URL-friendly slugs from unicode text
 python-slugify~=8.0.0
 
+# --- Async file I/O ---
+aiofiles>=23.0.0
+
 # --- Testing ---
 # Test framework
 pytest~=8.2.0

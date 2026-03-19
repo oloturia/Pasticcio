@@ -124,9 +124,9 @@ class Recipe(Base):
 
     # --- Status and visibility ---
     status: Mapped[RecipeStatus] = mapped_column(
-        Enum(RecipeStatus, name="recipestatustype"), default=RecipeStatus.DRAFT, nullable=False, index=True
+        Enum(RecipeStatus, name="recipestatustype", native_enum=False, values_callable=lambda x: [e.value for e in x]), default=RecipeStatus.DRAFT, nullable=False, index=True
     )
-
+    
     # --- Language ---
     # The language the recipe was originally written in (BCP-47 code,
     # e.g. "en", "it", "fr"). Translations are in RecipeTranslation.
@@ -137,7 +137,7 @@ class Recipe(Base):
     prep_time_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     cook_time_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     servings: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    difficulty: Mapped[Difficulty | None] = mapped_column(Enum(Difficulty, name="difficulttype"), nullable=True)
+    difficulty: Mapped[Difficulty | None] = mapped_column(Enum(Difficulty, name="difficulttype", native_enum=False), nullable=True)
 
     # --- Dietary tags ---
     # Stored as a PostgreSQL ARRAY of strings.
@@ -194,7 +194,14 @@ class Recipe(Base):
         back_populates="recipe",
         cascade="all, delete-orphan",
     )
+    
+    reactions: Mapped[list["Reaction"]] = relationship(
+        "Reaction", back_populates="recipe", cascade="all, delete-orphan"
+    )
 
+    cooked_this: Mapped[list["CookedThis"]] = relationship(
+        "CookedThis", back_populates="recipe", cascade="all, delete-orphan"
+    )
     def __repr__(self) -> str:
         return f"<Recipe {self.ap_id}>"
 
@@ -237,11 +244,10 @@ class RecipeTranslation(Base):
 
     # --- Translation metadata ---
     status: Mapped[TranslationStatus] = mapped_column(
-        Enum(TranslationStatus, name="translationstatustype"),
+        Enum(TranslationStatus, name="translationstatustype", native_enum=False, values_callable=lambda x: [e.value for e in x]),
         default=TranslationStatus.DRAFT,
         nullable=False,
     )
-
     # Who translated this (null if it's the original language version)
     translated_by_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
@@ -288,7 +294,7 @@ class RecipeIngredient(Base):
     # to avoid floating point weirdness (0.1 + 0.2 ≠ 0.3 in floats).
     quantity: Mapped[float | None] = mapped_column(Numeric(10, 3), nullable=True)
     unit: Mapped[IngredientUnit] = mapped_column(
-        Enum(IngredientUnit, name="ingredientunittype"), default=IngredientUnit.NONE, nullable=False
+        Enum(IngredientUnit, name="ingredientunittype", native_enum=False), default=IngredientUnit.NONE, nullable=False
     )
 
     # Free-text name in the recipe's original language

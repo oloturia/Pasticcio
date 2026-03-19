@@ -178,6 +178,31 @@ Publishing structured recipe data (ingredients, steps, nutritional info, dietary
 
 > **Design note:** Full "login with Mastodon account" (OAuth-based remote authentication) is technically complex and fragile across different AP implementations. It is listed as a future optional feature (see Roadmap), not a v1 requirement.
 
+**Scenario D — Fediverse user submits a recipe via the bot**
+1. Any Fediverse user (Mastodon, Pleroma, Misskey, etc.) sends a Direct Message
+   to the Pasticcio bot account (e.g. @bot@pasticcio.example.org)
+2. The bot guides the user through a multi-step conversation using commands:
+   - /help        shows the command guide
+   - /new         starts a new recipe session
+   - /title       sets the recipe title
+   - /ingredients sends the ingredient list (free text, one per line)
+   - /steps       sends the preparation steps (numbered)
+   - /tags        sets dietary tags (e.g. vegan, gluten_free)
+   - /publish     submits the recipe for review or publishes it directly
+3. Session state is stored in Redis with a TTL of a few hours,
+   keyed by the actor AP ID so each remote user has their own session
+4. The recipe is published under a bot-managed account with attribution
+   to the remote author in the description. Advanced option: create a
+   local shadow account for the remote actor (more correct federatively,
+   but more complex to implement)
+5. A configurable approval step can require an admin to review
+   bot-submitted recipes before publication
+
+> **Design note:** This feature is deliberately deferred to after the
+> frontend is functional. The bot inbox handler reuses the same AP inbox
+> infrastructure already in place. The main complexity is session state
+> management and the moderation workflow.
+
 ### 5.4 HTTP Signatures
 
 All outgoing federation requests use HTTP Signatures (draft-cavage-http-signatures) with RSA-SHA256, consistent with Mastodon's implementation for maximum compatibility.
@@ -545,6 +570,14 @@ S3_ENDPOINT=...
 - [ ] Public recipe browser
 - [ ] Author dashboard
 - [ ] Mobile-responsive
+
+### v0.6 — Fediverse bot
+- [ ] Bot account (@bot@instance) with its own AP Actor and inbox
+- [ ] Command parser for DM-based recipe submission
+      (/new, /title, /ingredients, /steps, /tags, /publish, /help)
+- [ ] Redis session state management per remote actor (with TTL)
+- [ ] Optional admin approval step for bot-submitted recipes
+- [ ] Attribution of the remote Fediverse author in the published recipe
 
 ### Future / under evaluation
 - [ ] Remote login (OAuth with Mastodon) — complex, deferred

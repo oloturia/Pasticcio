@@ -40,3 +40,7 @@ __all__ = [
 ]
 
 from app.models.follower import Follower
+
+from app.models.cooked_this import CookedThis
+
+from app.models.reaction import Reaction, ReactionType

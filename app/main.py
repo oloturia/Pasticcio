@@ -12,7 +12,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import auth, recipes, wellknown, activitypub
+from app.routers import auth, recipes, wellknown, activitypub, comments
+from app.routers import users
+from app.routers import photos
+
+from fastapi.staticfiles import StaticFiles
+import os
 
 # Create the main FastAPI instance.
 # The metadata appears in the auto-generated documentation at /api/docs
@@ -23,6 +28,10 @@ app = FastAPI(
     docs_url="/api/docs" if settings.debug else None,
     redoc_url="/api/redoc" if settings.debug else None,
 )
+
+# Mount media directory for uploaded files
+os.makedirs(settings.media_root, exist_ok=True)
+app.mount("/media", StaticFiles(directory=settings.media_root), name="media")
 
 # --- CORS ---
 app.add_middleware(
@@ -49,7 +58,9 @@ app.include_router(auth.router)
 app.include_router(recipes.router)
 app.include_router(wellknown.router)    # /.well-known/webfinger, /nodeinfo
 app.include_router(activitypub.router)  # /users/{username}, /users/{username}/inbox, /outbox
-
+app.include_router(comments.router)
+app.include_router(users.router)
+app.include_router(photos.router)
 
 # --- Root ---
 @app.get("/", tags=["system"])

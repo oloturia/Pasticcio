@@ -1,42 +1,49 @@
 # ============================================================
-# app/worker.py — Celery configuration
+# app/worker.py — Celery application instance
 # ============================================================
 #
-# Celery handles async tasks: primarily sending ActivityPub
-# activities to other servers in the Fediverse.
-# When a user publishes a recipe, the web server responds
-# immediately to the user, then Celery takes care of notifying
-# all remote followers in the background.
+# This file defines the Celery app that the worker process loads.
+# It is kept minimal on purpose: only the Celery instance and its
+# configuration live here. The actual tasks are in app/tasks/.
 #
-# For now this is just a skeleton. The real tasks (deliver_activity,
-# process_incoming_activity, etc.) will be added when we build
-# the ActivityPub module.
+# The worker is started by podman-compose with:
+#   celery -A app.worker worker --loglevel=info
+#
+# In the FastAPI app, tasks are imported from app/tasks/ directly
+# and called with .delay() or .apply_async().
 
 from celery import Celery
 
 from app.config import settings
 
-# Create the Celery app
-# - first argument: module name (used in logs)
-# - broker: where Celery reads tasks to execute (Redis)
-# - backend: where Celery writes task results (Redis)
+# Create the Celery instance.
+# The first argument is the name of the module — used in log messages.
+# broker: where Celery sends task messages (Redis)
+# backend: where Celery stores task results (Redis)
+# We use the same Redis instance for both to keep the setup simple.
 celery_app = Celery(
     "pasticcio",
     broker=settings.redis_url,
     backend=settings.redis_url,
-    include=["app.tasks"],  # Python modules that contain tasks
 )
 
-# Celery configuration
 celery_app.conf.update(
-    # JSON serialisation (safer than the default pickle)
+    # Serialise messages as JSON (readable, language-agnostic)
     task_serializer="json",
     result_serializer="json",
     accept_content=["json"],
-    # Timezone
+
+    # Timezone — always UTC in the backend
     timezone="UTC",
     enable_utc=True,
-    # If a task fails, retry up to 3 times with backoff
+
+    # If a task is not acknowledged within 30 minutes, re-queue it.
+    # Prevents tasks from being lost if the worker crashes mid-execution.
     task_acks_late=True,
     task_reject_on_worker_lost=True,
+
+    # Automatically discover tasks in app/tasks/
+    # Celery will import any module named "tasks" inside installed apps.
+    imports=["app.tasks.delivery"],
+    broker_connection_retry_on_startup=True,
 )

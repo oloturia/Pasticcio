@@ -58,6 +58,7 @@ class User(Base):
     # Remote users have no password here — we just store their
     # profile so we can display it when they comment on a recipe.
     is_remote: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     remote_actor_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
     # --- Authentication (local users only) ---

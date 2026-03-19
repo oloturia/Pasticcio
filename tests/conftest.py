@@ -34,10 +34,13 @@ TestSessionLocal = async_sessionmaker(
 # Tables to truncate between tests, in the right order
 # (children before parents to respect foreign keys)
 TABLES_TO_TRUNCATE = [
+    "cooked_this",
+    "reactions",
     "recipe_photos",
     "recipe_ingredients",
     "recipe_translations",
     "recipes",
+    "followers",
     "food_items",
     "users",
 ]

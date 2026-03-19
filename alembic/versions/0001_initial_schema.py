@@ -3,16 +3,6 @@
 Revision ID: 0001
 Revises:
 Create Date: 2024-01-01 00:00:00.000000
-
-This is the first migration. It creates the core tables:
-  - users
-  - recipes
-  - recipe_translations
-  - recipe_ingredients
-  - recipe_photos
-
-A placeholder food_items table is also created (empty for now)
-because recipe_ingredients has a foreign key to it.
 """
 from collections.abc import Sequence
 
@@ -22,18 +12,35 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 revision: str = "0001"
-down_revision: str | None = None  # None means "this is the first migration"
+down_revision: str | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
     # --- ENUM types ---
-    # PostgreSQL enums must be created before the tables that use them.
-    op.execute("CREATE TYPE recipestatus AS ENUM ('draft', 'published', 'unlisted', 'deleted')")
-    op.execute("CREATE TYPE translationstatus AS ENUM ('original', 'draft', 'reviewed')")
-    op.execute("CREATE TYPE difficulty AS ENUM ('easy', 'medium', 'hard')")
-    op.execute("CREATE TYPE ingredientunit AS ENUM ('g', 'kg', 'oz', 'lb', 'ml', 'l', 'tsp', 'tbsp', 'cup', 'fl_oz', 'piece', 'pinch', 'to_taste', '')")
+    # Use DO $$ pattern to avoid conflicts when SQLAlchemy
+    # has already created the type via model import
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE recipestatustype AS ENUM ('draft', 'published', 'unlisted', 'deleted');
+        EXCEPTION WHEN duplicate_object THEN null; END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE translationstatustype AS ENUM ('original', 'draft', 'reviewed');
+        EXCEPTION WHEN duplicate_object THEN null; END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE difficulttype AS ENUM ('easy', 'medium', 'hard');
+        EXCEPTION WHEN duplicate_object THEN null; END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE ingredientunittype AS ENUM ('g', 'kg', 'oz', 'lb', 'ml', 'l', 'tsp', 'tbsp', 'cup', 'fl_oz', 'piece', 'pinch', 'to_taste', '');
+        EXCEPTION WHEN duplicate_object THEN null; END $$;
+    """)
 
     # --- users ---
     op.create_table(
@@ -61,9 +68,7 @@ def upgrade() -> None:
     op.create_index("ix_users_ap_id", "users", ["ap_id"], unique=True)
     op.create_index("ix_users_email", "users", ["email"], unique=True)
 
-    # --- food_items (placeholder for the nutrition module) ---
-    # Created now because recipe_ingredients references it.
-    # Will be populated when we build the nutrition module.
+    # --- food_items ---
     op.create_table(
         "food_items",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
@@ -82,12 +87,12 @@ def upgrade() -> None:
         sa.Column("author_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
         sa.Column("slug", sa.String(256), nullable=False),
         sa.Column("ap_id", sa.String(512), nullable=False),
-        sa.Column("status", sa.Enum("draft", "published", "unlisted", "deleted", name="recipestatustype"), nullable=False, server_default="draft"),
+        sa.Column("status", sa.Text(), nullable=False, server_default="draft"),
         sa.Column("original_language", sa.String(10), nullable=False, server_default="en"),
         sa.Column("prep_time_seconds", sa.Integer(), nullable=True),
         sa.Column("cook_time_seconds", sa.Integer(), nullable=True),
         sa.Column("servings", sa.Integer(), nullable=True),
-        sa.Column("difficulty", sa.Enum("easy", "medium", "hard", name="difficulttype"), nullable=True),
+        sa.Column("difficulty", sa.Text(), nullable=True),
         sa.Column("dietary_tags", postgresql.ARRAY(sa.String()), nullable=False, server_default="{}"),
         sa.Column("metabolic_tags", postgresql.ARRAY(sa.String()), nullable=False, server_default="{}"),
         sa.Column("show_metabolic_disclaimer", sa.Boolean(), nullable=False, server_default="false"),
@@ -96,12 +101,14 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("published_at", sa.DateTime(timezone=True), nullable=True),
     )
+    # Cast columns to their enum types
+    op.execute("ALTER TABLE recipes ALTER COLUMN status TYPE recipestatustype USING status::recipestatustype")
+    op.execute("ALTER TABLE recipes ALTER COLUMN difficulty TYPE difficulttype USING difficulty::difficulttype")
+
     op.create_index("ix_recipes_author_id", "recipes", ["author_id"])
     op.create_index("ix_recipes_ap_id", "recipes", ["ap_id"], unique=True)
     op.create_index("ix_recipes_status", "recipes", ["status"])
-    # Composite unique constraint: one slug per author
     op.create_index("ix_recipes_author_slug", "recipes", ["author_id", "slug"], unique=True)
-    # GIN index on arrays: allows fast filtering by dietary_tags
     op.create_index("ix_recipes_dietary_tags", "recipes", ["dietary_tags"], postgresql_using="gin")
 
     # --- recipe_translations ---
@@ -113,13 +120,13 @@ def upgrade() -> None:
         sa.Column("title", sa.String(256), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("steps", postgresql.JSONB(), nullable=False, server_default="[]"),
-        sa.Column("status", sa.Enum("original", "draft", "reviewed", name="translationstatustype"), nullable=False, server_default="draft"),
+        sa.Column("status", sa.Text(), nullable=False, server_default="draft"),
         sa.Column("translated_by_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
     )
+    op.execute("ALTER TABLE recipe_translations ALTER COLUMN status TYPE translationstatustype USING status::translationstatustype")
     op.create_index("ix_recipe_translations_recipe_id", "recipe_translations", ["recipe_id"])
-    # One translation per language per recipe
     op.create_index("ix_recipe_translations_recipe_language", "recipe_translations", ["recipe_id", "language"], unique=True)
 
     # --- recipe_ingredients ---
@@ -129,11 +136,12 @@ def upgrade() -> None:
         sa.Column("recipe_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("recipes.id", ondelete="CASCADE"), nullable=False),
         sa.Column("sort_order", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("quantity", sa.Numeric(10, 3), nullable=True),
-        sa.Column("unit", sa.Enum("g", "kg", "oz", "lb", "ml", "l", "tsp", "tbsp", "cup", "fl_oz", "piece", "pinch", "to_taste", "", name="ingredientunittype"), nullable=False, server_default=""),
+        sa.Column("unit", sa.Text(), nullable=False, server_default=""),
         sa.Column("name", sa.String(256), nullable=False),
         sa.Column("notes", sa.String(256), nullable=True),
         sa.Column("food_item_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("food_items.id", ondelete="SET NULL"), nullable=True),
     )
+    op.execute("ALTER TABLE recipe_ingredients ALTER COLUMN unit TYPE ingredientunittype USING unit::ingredientunittype")
     op.create_index("ix_recipe_ingredients_recipe_id", "recipe_ingredients", ["recipe_id"])
 
     # --- recipe_photos ---
@@ -150,16 +158,12 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # Drop tables in reverse order (children before parents,
-    # to avoid foreign key constraint violations)
     op.drop_table("recipe_photos")
     op.drop_table("recipe_ingredients")
     op.drop_table("recipe_translations")
     op.drop_table("recipes")
     op.drop_table("food_items")
     op.drop_table("users")
-
-    # Drop enum types last
     op.execute("DROP TYPE IF EXISTS ingredientunittype")
     op.execute("DROP TYPE IF EXISTS difficulttype")
     op.execute("DROP TYPE IF EXISTS translationstatustype")

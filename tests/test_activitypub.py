@@ -224,19 +224,58 @@ async def test_followers_unknown_user(client: AsyncClient):
 
 FAKE_REMOTE_ACTOR = {
     "type": "Person",
-    "id": "https://mastodon.social/users/remoteuser",
-    "inbox": "https://mastodon.social/users/remoteuser/inbox",
+    "id": "https://remote.example.com/users/remoteuser",
+    "inbox": "https://remote.example.com/users/remoteuser/inbox",
     "publicKey": {
-        "id": "https://mastodon.social/users/remoteuser#main-key",
-        "owner": "https://mastodon.social/users/remoteuser",
+        "id": "https://remote.example.com/users/remoteuser#main-key",
+        "owner": "https://remote.example.com/users/remoteuser",
         "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nfake\n-----END PUBLIC KEY-----",
     },
 }
 
+REMOTE_ACTOR_URL = "https://remote.example.com/users/remoteuser"
+
+
+async def _create_published_recipe(client, auth_headers):
+    """Helper — create and publish a recipe, return its data."""
+    response = await client.post(
+        "/api/v1/recipes/",
+        json={
+            "translation": {
+                "language": "en",
+                "title": "Federation Test Recipe",
+                "description": "For AP tests.",
+                "steps": [],
+            },
+            "original_language": "en",
+            "ingredients": [],
+            "publish": True,
+        },
+        headers=auth_headers,
+    )
+    assert response.status_code == 201
+    return response.json()
+
+
+async def _post_to_inbox(client, username, activity):
+    """Helper — POST an AP activity to a local inbox with mocked signature."""
+    with (
+        patch("app.routers.activitypub.verify_request", return_value=True),
+        patch(
+            "app.routers.activitypub._fetch_remote_actor",
+            new=AsyncMock(return_value=FAKE_REMOTE_ACTOR),
+        ),
+    ):
+        return await client.post(
+            f"/users/{username}/inbox",
+            content=json.dumps(activity),
+            headers={"Content-Type": "application/activity+json"},
+        )
+
 FOLLOW_ACTIVITY = {
     "type": "Follow",
-    "id": "https://mastodon.social/users/remoteuser#follow-1",
-    "actor": "https://mastodon.social/users/remoteuser",
+    "id": "https://remote.example.com/users/remoteuser#follow-1",
+    "actor": "https://remote.example.com/users/remoteuser",
     "object": "https://pasticcio.localhost/users/testuser",
 }
 
@@ -313,7 +352,7 @@ async def test_inbox_unfollow_removes_follower(client: AsyncClient, test_user: d
         # Then, unfollow
         undo_activity = {
             "type": "Undo",
-            "actor": "https://mastodon.social/users/remoteuser",
+            "actor": "https://remote.example.com/users/remoteuser",
             "object": FOLLOW_ACTIVITY,
         }
         response = await client.post(
@@ -370,3 +409,248 @@ async def test_inbox_unknown_user_returns_404(client: AsyncClient):
         headers={"Content-Type": "application/activity+json"},
     )
     assert response.status_code == 404
+
+
+# ============================================================
+# Tests for Update{Note} and Delete{Note} inbox handlers
+# Add these at the end of tests/test_activitypub.py
+# ============================================================
+
+async def test_inbox_update_note_updates_comment(
+    client: AsyncClient, test_user: dict, auth_headers: dict
+):
+    """Update{Note} updates the content of an existing local CookedThis."""
+    # Create and publish a recipe
+    recipe = await _create_published_recipe(client, auth_headers)
+
+    # Deliver a Create{Note} to create the comment
+    create_activity = {
+        "type": "Create",
+        "actor": REMOTE_ACTOR_URL,
+        "object": {
+            "type": "Note",
+            "id": "https://remote.example.com/users/remoteuser/statuses/100",
+            "inReplyTo": recipe["ap_id"],
+            "content": "Original content",
+        },
+    }
+    await _post_to_inbox(client, "testuser", create_activity)
+
+    # Verify comment was created
+    comments = await client.get(f"/api/v1/recipes/{recipe['id']}/comments")
+    assert len(comments.json()) == 1
+    assert comments.json()[0]["content"] == "Original content"
+
+    # Now send Update{Note} with new content
+    update_activity = {
+        "type": "Update",
+        "actor": REMOTE_ACTOR_URL,
+        "object": {
+            "type": "Note",
+            "id": "https://remote.example.com/users/remoteuser/statuses/100",
+            "inReplyTo": recipe["ap_id"],
+            "content": "<p>Updated content</p>",
+        },
+    }
+    response = await _post_to_inbox(client, "testuser", update_activity)
+    assert response.status_code == 202
+
+    # Comment content should be updated and HTML stripped
+    comments = await client.get(f"/api/v1/recipes/{recipe['id']}/comments")
+    assert comments.json()[0]["content"] == "Updated content"
+
+
+async def test_inbox_update_note_wrong_actor_ignored(
+    client: AsyncClient, test_user: dict, auth_headers: dict
+):
+    """Update{Note} from a different actor than the original author is ignored."""
+    recipe = await _create_published_recipe(client, auth_headers)
+
+    # Create comment from remoteuser
+    create_activity = {
+        "type": "Create",
+        "actor": REMOTE_ACTOR_URL,
+        "object": {
+            "type": "Note",
+            "id": "https://remote.example.com/users/remoteuser/statuses/200",
+            "inReplyTo": recipe["ap_id"],
+            "content": "Original content",
+        },
+    }
+    await _post_to_inbox(client, "testuser", create_activity)
+
+    # Try to update from a different actor
+    other_actor = "https://remote.example.com/users/otheruser"
+    update_activity = {
+        "type": "Update",
+        "actor": other_actor,
+        "object": {
+            "type": "Note",
+            "id": "https://remote.example.com/users/remoteuser/statuses/200",
+            "inReplyTo": recipe["ap_id"],
+            "content": "Hijacked content",
+        },
+    }
+
+    fake_other_actor = {**FAKE_REMOTE_ACTOR, "id": other_actor}
+    with (
+        patch("app.routers.activitypub.verify_request", return_value=True),
+        patch(
+            "app.routers.activitypub._fetch_remote_actor",
+            new=AsyncMock(return_value=fake_other_actor),
+        ),
+    ):
+        response = await client.post(
+            "/users/testuser/inbox",
+            content=json.dumps(update_activity),
+            headers={"Content-Type": "application/activity+json"},
+        )
+    assert response.status_code == 202
+
+    # Content should be unchanged
+    comments = await client.get(f"/api/v1/recipes/{recipe['id']}/comments")
+    assert comments.json()[0]["content"] == "Original content"
+
+
+async def test_inbox_update_note_nonexistent_ignored(
+    client: AsyncClient, test_user: dict, auth_headers: dict
+):
+    """Update{Note} for a Note we do not have is silently ignored."""
+    update_activity = {
+        "type": "Update",
+        "actor": REMOTE_ACTOR_URL,
+        "object": {
+            "type": "Note",
+            "id": "https://remote.example.com/users/remoteuser/statuses/999",
+            "content": "Does not matter",
+        },
+    }
+    response = await _post_to_inbox(client, "testuser", update_activity)
+    assert response.status_code == 202
+
+
+async def test_inbox_delete_note_removes_comment(
+    client: AsyncClient, test_user: dict, auth_headers: dict
+):
+    """Delete{Note} removes a local CookedThis."""
+    recipe = await _create_published_recipe(client, auth_headers)
+
+    create_activity = {
+        "type": "Create",
+        "actor": REMOTE_ACTOR_URL,
+        "object": {
+            "type": "Note",
+            "id": "https://remote.example.com/users/remoteuser/statuses/300",
+            "inReplyTo": recipe["ap_id"],
+            "content": "To be deleted",
+        },
+    }
+    await _post_to_inbox(client, "testuser", create_activity)
+
+    comments = await client.get(f"/api/v1/recipes/{recipe['id']}/comments")
+    assert len(comments.json()) == 1
+
+    # Send Delete with object as plain string (Mastodon style)
+    delete_activity = {
+        "type": "Delete",
+        "actor": REMOTE_ACTOR_URL,
+        "object": "https://remote.example.com/users/remoteuser/statuses/300",
+    }
+    response = await _post_to_inbox(client, "testuser", delete_activity)
+    assert response.status_code == 202
+
+    # Comment should be gone
+    comments = await client.get(f"/api/v1/recipes/{recipe['id']}/comments")
+    assert len(comments.json()) == 0
+
+
+async def test_inbox_delete_note_dict_object(
+    client: AsyncClient, test_user: dict, auth_headers: dict
+):
+    """Delete{Note} works when object is a dict (not Mastodon style)."""
+    recipe = await _create_published_recipe(client, auth_headers)
+
+    create_activity = {
+        "type": "Create",
+        "actor": REMOTE_ACTOR_URL,
+        "object": {
+            "type": "Note",
+            "id": "https://remote.example.com/users/remoteuser/statuses/400",
+            "inReplyTo": recipe["ap_id"],
+            "content": "Also to be deleted",
+        },
+    }
+    await _post_to_inbox(client, "testuser", create_activity)
+
+    # Delete with object as dict
+    delete_activity = {
+        "type": "Delete",
+        "actor": REMOTE_ACTOR_URL,
+        "object": {
+            "type": "Note",
+            "id": "https://remote.example.com/users/remoteuser/statuses/400",
+        },
+    }
+    response = await _post_to_inbox(client, "testuser", delete_activity)
+    assert response.status_code == 202
+
+    comments = await client.get(f"/api/v1/recipes/{recipe['id']}/comments")
+    assert len(comments.json()) == 0
+
+
+async def test_inbox_delete_note_wrong_actor_ignored(
+    client: AsyncClient, test_user: dict, auth_headers: dict
+):
+    """Delete{Note} from a different actor than the original author is ignored."""
+    recipe = await _create_published_recipe(client, auth_headers)
+
+    create_activity = {
+        "type": "Create",
+        "actor": REMOTE_ACTOR_URL,
+        "object": {
+            "type": "Note",
+            "id": "https://remote.example.com/users/remoteuser/statuses/500",
+            "inReplyTo": recipe["ap_id"],
+            "content": "Should not be deleted",
+        },
+    }
+    await _post_to_inbox(client, "testuser", create_activity)
+
+    other_actor = "https://remote.example.com/users/otheruser"
+    delete_activity = {
+        "type": "Delete",
+        "actor": other_actor,
+        "object": "https://remote.example.com/users/remoteuser/statuses/500",
+    }
+
+    fake_other_actor = {**FAKE_REMOTE_ACTOR, "id": other_actor}
+    with (
+        patch("app.routers.activitypub.verify_request", return_value=True),
+        patch(
+            "app.routers.activitypub._fetch_remote_actor",
+            new=AsyncMock(return_value=fake_other_actor),
+        ),
+    ):
+        response = await client.post(
+            "/users/testuser/inbox",
+            content=json.dumps(delete_activity),
+            headers={"Content-Type": "application/activity+json"},
+        )
+    assert response.status_code == 202
+
+    # Comment should still exist
+    comments = await client.get(f"/api/v1/recipes/{recipe['id']}/comments")
+    assert len(comments.json()) == 1
+
+
+async def test_inbox_delete_note_nonexistent_ignored(
+    client: AsyncClient, test_user: dict, auth_headers: dict
+):
+    """Delete{Note} for a Note we do not have is silently ignored."""
+    delete_activity = {
+        "type": "Delete",
+        "actor": REMOTE_ACTOR_URL,
+        "object": "https://remote.example.com/users/remoteuser/statuses/999",
+    }
+    response = await _post_to_inbox(client, "testuser", delete_activity)
+    assert response.status_code == 202
