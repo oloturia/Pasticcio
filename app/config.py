@@ -6,6 +6,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+	# --- Testing environment ---
+    testing: bool = False
+    
     # --- Database ---
     database_url: str
 
@@ -40,6 +43,12 @@ class Settings(BaseSettings):
     # Per-domain: max requests from the same remote server
     inbox_ratelimit_domain_max: int = 600
     inbox_ratelimit_domain_window: int = 300  # 5 minutes
+    
+    # --- API rate limiting ---
+    api_ratelimit_ip_max: int = 60
+    api_ratelimit_ip_window: int = 60
+    api_ratelimit_user_max: int = 300
+    api_ratelimit_user_window: int = 60
 
     # --- Storage ---
     storage_backend: str = "local"  # "local" or "s3"

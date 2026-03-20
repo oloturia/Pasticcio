@@ -14,6 +14,8 @@ from app.database import Base, get_db
 from app.main import app
 from app.config import settings
 
+settings.testing = True
+
 # ============================================================
 # Test database
 # ============================================================

@@ -42,6 +42,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from app.middleware import RateLimitMiddleware
+app.add_middleware(RateLimitMiddleware)
 
 # --- Health check ---
 @app.get("/health", tags=["system"])
