@@ -85,7 +85,7 @@ class CookedThis(Base):
     is_remote: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     status: Mapped[CookedThisStatus] = mapped_column(
-        Enum(CookedThisStatus, name="cookedthisstatustype", native_enum=False),
+        Enum(CookedThisStatus, name="cookedthisstatustype", native_enum=False, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=CookedThisStatus.PUBLISHED,
         index=True,

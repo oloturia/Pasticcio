@@ -18,7 +18,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, field_validator
 from slugify import slugify
 from sqlalchemy import select, func, and_
@@ -41,6 +41,8 @@ from app.models.user import User
 from app.models.reaction import Reaction, ReactionType
 from app.routers.auth import get_current_user
 
+from fastapi.templating import Jinja2Templates
+templates = Jinja2Templates(directory="app/templates")
 
 router = APIRouter(prefix="/api/v1/recipes", tags=["recipes"])
 
@@ -332,9 +334,10 @@ async def list_recipes(
 @router.get("/{recipe_id}", response_model=RecipeOut)
 async def get_recipe(
     recipe_id: uuid.UUID,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ):
-    """Get a single recipe by ID."""
+    """Get a single recipe by ID. Returns HTML for browsers, JSON for AP clients."""
     result = await db.execute(
         select(Recipe)
         .where(Recipe.id == recipe_id)
@@ -345,10 +348,31 @@ async def get_recipe(
         )
     )
     recipe = result.scalar_one_or_none()
+
     if not recipe or recipe.status == RecipeStatus.DELETED:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recipe not found")
 
-    # Count likes and announces from the reactions table
+    accept = request.headers.get("accept", "")
+    if "text/html" in accept and "application/activity+json" not in accept:
+        # Pick the best available translation
+        translation = next(
+            (t for t in recipe.translations if t.language == recipe.original_language),
+            recipe.translations[0] if recipe.translations else None,
+        )
+        steps = sorted(translation.steps, key=lambda s: s.get("order", 0)) if translation else []
+
+        return templates.TemplateResponse(
+            "recipe_detail.html",
+            {
+                "request": request,
+                "recipe": recipe,
+                "translation": translation,
+                "ingredients": recipe.ingredients,
+                "steps": steps,
+            },
+        )
+
+    # Default: JSON for API and AP clients
     likes_result = await db.execute(
         select(func.count()).where(
             Reaction.recipe_id == recipe_id,
@@ -361,13 +385,10 @@ async def get_recipe(
             Reaction.reaction_type == ReactionType.ANNOUNCE,
         )
     )
-
-    # Pydantic cannot read these from the ORM object, so we build the response manually
     data = RecipeOut.model_validate(recipe)
     data.likes_count = likes_result.scalar() or 0
     data.announces_count = announces_result.scalar() or 0
     return data
-
 @router.put("/{recipe_id}", response_model=RecipeOut)
 async def update_recipe(
     recipe_id: uuid.UUID,

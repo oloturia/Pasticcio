@@ -137,6 +137,7 @@ async def get_actor(
             )
             translation = trans_result.scalar_one_or_none()
             recipe_list.append({
+                "id": str(recipe.id),
                 "slug": recipe.slug,
                 "title": translation.title if translation else None,
                 "published_at": recipe.published_at.isoformat() if recipe.published_at else None,
@@ -522,6 +523,84 @@ async def inbox(
 # ============================================================
 
 @router.post("/inbox", status_code=202)
-async def shared_inbox(request: Request):
-    """Shared inbox stub — acknowledge all incoming activities."""
-    return Response(status_code=202)
+async def shared_inbox(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Shared inbox — receives activities addressed to any local user.
+    Finds the intended recipient from the activity's to/cc fields
+    and delegates to the personal inbox handler.
+    """
+    body = await request.body()
+
+    try:
+        raw = json.loads(body)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+
+    # Rate limiting
+    client_ip = request.client.host if request.client else "unknown"
+    actor_url_for_limit = raw.get("actor", "unknown")
+    allowed, reason = await check_rate_limit(client_ip, actor_url_for_limit)
+    if not allowed:
+        raise HTTPException(status_code=429, detail=reason)
+
+    # Find the local recipient by scanning to/cc fields
+    # and the object field for the AP ID of a local user
+    instance_prefix = f"https://{settings.instance_domain}/users/"
+
+    recipient_username = None
+
+    for field in ("to", "cc"):
+        value = raw.get(field, [])
+        if isinstance(value, str):
+            value = [value]
+        for url in value:
+            if isinstance(url, str) and url.startswith(instance_prefix):
+                # Extract username from URL like https://instance/users/maria
+                candidate = url[len(instance_prefix):].split("/")[0]
+                if candidate:
+                    recipient_username = candidate
+                    break
+        if recipient_username:
+            break
+
+    # If not found in to/cc, check object field
+    if not recipient_username:
+        obj = raw.get("object")
+        if isinstance(obj, str) and obj.startswith(instance_prefix):
+            candidate = obj[len(instance_prefix):].split("/")[0]
+            if candidate:
+                recipient_username = candidate
+        elif isinstance(obj, dict):
+            for field in ("to", "cc", "attributedTo"):
+                value = obj.get(field, [])
+                if isinstance(value, str):
+                    value = [value]
+                for url in value:
+                    if isinstance(url, str) and url.startswith(instance_prefix):
+                        candidate = url[len(instance_prefix):].split("/")[0]
+                        if candidate:
+                            recipient_username = candidate
+                            break
+                if recipient_username:
+                    break
+
+    if not recipient_username:
+        # Cannot determine recipient — acknowledge and ignore
+        logger.debug("shared_inbox: could not determine recipient for activity type %s", raw.get("type"))
+        return Response(status_code=202)
+
+    # Verify the recipient exists
+    result = await db.execute(
+        select(User).where(
+            User.username == recipient_username,
+            User.is_remote.is_(False),
+        )
+    )
+    if not result.scalar_one_or_none():
+        return Response(status_code=202)
+
+    # Delegate to the personal inbox handler
+    return await inbox(recipient_username, request, db)

@@ -20,7 +20,7 @@
     <ul class="recipe-list">
         {% for recipe in recipes %}
         <li>
-            <a href="/recipes/{{ recipe.slug }}">{{ recipe.title or recipe.slug }}</a>
+            <a href="/api/v1/recipes/{{ recipe.id }}">{{ recipe.title or recipe.slug }}</a>
             {% if recipe.published_at %}
             <span class="date">{{ recipe.published_at[:10] }}</span>
             {% endif %}

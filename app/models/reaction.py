@@ -49,7 +49,7 @@ class Reaction(Base):
 
     # like or announce
     reaction_type: Mapped[ReactionType] = mapped_column(
-        Enum(ReactionType, name="reactiontype", native_enum=False),
+        Enum(ReactionType, name="reactiontype", native_enum=False, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
     )
 

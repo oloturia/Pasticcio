@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}{{ translation.title }} — Pasticcio{% endblock %}
+
+{% block content %}
+<article>
+    <h1>{{ translation.title }}</h1>
+
+    <p class="meta">
+        by <a href="/users/{{ recipe.author.username }}">{{ recipe.author.display_name or recipe.author.username }}</a>
+        {% if recipe.published_at %}
+        &mdash; {{ recipe.published_at.strftime('%Y-%m-%d') }}
+        {% endif %}
+        {% if recipe.difficulty %}
+        &mdash; {{ recipe.difficulty }}
+        {% endif %}
+    </p>
+
+    {% if recipe.dietary_tags %}
+    <p class="meta">
+        {% for tag in recipe.dietary_tags %}
+        <span style="background:#f0f0eb;padding:2px 6px;border-radius:3px;font-size:0.8rem;">{{ tag }}</span>
+        {% endfor %}
+    </p>
+    {% endif %}
+
+    {% if recipe.show_metabolic_disclaimer %}
+    <p class="meta" style="color:#b5541a;">
+        ⚠️ Metabolic tags are the author's own assessment and are not medical recommendations.
+    </p>
+    {% endif %}
+
+    {% if translation.description %}
+    <p class="bio">{{ translation.description }}</p>
+    {% endif %}
+
+    <div style="display:flex;gap:2rem;margin:1rem 0;font-size:0.9rem;color:#666;">
+        {% if recipe.prep_time_seconds %}
+        <span>Prep: {{ (recipe.prep_time_seconds // 60) }}min</span>
+        {% endif %}
+        {% if recipe.cook_time_seconds %}
+        <span>Cook: {{ (recipe.cook_time_seconds // 60) }}min</span>
+        {% endif %}
+        {% if recipe.servings %}
+        <span>Serves: {{ recipe.servings }}</span>
+        {% endif %}
+    </div>
+
+    {% if ingredients %}
+    <h2>Ingredients</h2>
+    <ul class="recipe-list">
+        {% for ing in ingredients %}
+        <li>
+            {% if ing.quantity %}{{ ing.quantity }} {% endif %}
+            {% if ing.unit %}{{ ing.unit }} {% endif %}
+            {{ ing.name }}
+            {% if ing.notes %}<span style="color:#888;font-size:0.85rem;">({{ ing.notes }})</span>{% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if steps %}
+    <h2>Steps</h2>
+    <ol class="recipe-list">
+        {% for step in steps %}
+        <li>{{ step.text }}</li>
+        {% endfor %}
+    </ol>
+    {% endif %}
+
+    <p class="ap-link">
+        <a href="{{ recipe.ap_id }}">ActivityPub object</a>
+    </p>
+</article>
+{% endblock %}
