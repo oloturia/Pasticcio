@@ -22,6 +22,7 @@ from app.models.cooked_this import CookedThis, CookedThisStatus
 from app.models.recipe import Recipe, RecipeStatus
 from app.models.user import User
 from app.routers.auth import get_current_user
+from app.tasks.delivery import deliver_comment_to_followers
 
 import logging
 logger = logging.getLogger(__name__)
@@ -173,7 +174,6 @@ async def create_comment(
     await db.flush()
     # Deliver the comment to all followers of the recipe author
     try:
-        from app.tasks.delivery import deliver_comment_to_followers
         deliver_comment_to_followers.delay(str(comment_id))
     except Exception:
         logger.warning("Could not enqueue comment delivery for %s", comment_id)

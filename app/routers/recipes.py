@@ -41,6 +41,8 @@ from app.models.user import User
 from app.models.reaction import Reaction, ReactionType
 from app.routers.auth import get_current_user
 
+from app.tasks.delivery import deliver_to_followers
+
 from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="app/templates")
 
@@ -195,7 +197,6 @@ def _trigger_delivery(recipe_id: uuid.UUID, activity_type: str) -> None:
     is unreachable. In production the broker is always up.
     """
     try:
-        from app.tasks.delivery import deliver_to_followers
         deliver_to_followers.delay(str(recipe_id), activity_type)
     except Exception:
         # Log but do not raise — delivery failure must never break the API
