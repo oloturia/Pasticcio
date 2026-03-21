@@ -517,6 +517,68 @@ async def inbox(
     logger.debug("Unhandled activity type: %s", activity_type)
     return Response(status_code=202)
 
+    # ----------------------------------------------------------
+    # Update{Article} — remote server updated a recipe
+    # ----------------------------------------------------------
+    if activity_type == "Update":
+        obj = raw.get("object", {})
+        if not isinstance(obj, dict) or obj.get("type") != "Article":
+            # Update{Note} is handled above — ignore other types
+            return Response(status_code=202)
+
+        article_ap_id = obj.get("id")
+        if not article_ap_id:
+            return Response(status_code=202)
+
+        # Only update recipes that were forked from this AP ID
+        # We do not store remote recipes directly — only forks
+        result = await db.execute(
+            select(Recipe).where(Recipe.forked_from == article_ap_id)
+        )
+        # We intentionally do NOT auto-update forks — the user owns
+        # their fork and may have made changes. Just acknowledge.
+        # If in future we want to notify the user, this is the place.
+        return Response(status_code=202)
+
+    # ----------------------------------------------------------
+    # Delete{Article} — remote server deleted a recipe
+    # ----------------------------------------------------------
+    if activity_type == "Delete":
+        obj = raw.get("object")
+
+        if isinstance(obj, str):
+            article_ap_id = obj
+        elif isinstance(obj, dict):
+            article_ap_id = obj.get("id")
+        else:
+            return Response(status_code=202)
+
+        if not article_ap_id:
+            return Response(status_code=202)
+
+        # Delete local recipe if it matches the AP ID and the
+        # actor is the author (prevent unauthorized deletions)
+        result = await db.execute(
+            select(Recipe).where(
+                Recipe.ap_id == article_ap_id,
+                Recipe.status != RecipeStatus.DELETED,
+            )
+        )
+        recipe = result.scalar_one_or_none()
+        if recipe:
+            # Verify the actor is the recipe author
+            author_ap_id = f"https://{settings.instance_domain}/users/{recipe.author.username if hasattr(recipe, 'author') else ''}"
+            # Load author to check
+            author_result = await db.execute(
+                select(User).where(User.id == recipe.author_id)
+            )
+            author = author_result.scalar_one_or_none()
+            if author and author.ap_id == actor_url:
+                recipe.status = RecipeStatus.DELETED
+                await db.flush()
+
+        return Response(status_code=202)
+
 
 # ============================================================
 # Shared inbox

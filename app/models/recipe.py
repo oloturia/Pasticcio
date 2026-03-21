@@ -202,6 +202,9 @@ class Recipe(Base):
     cooked_this: Mapped[list["CookedThis"]] = relationship(
         "CookedThis", back_populates="recipe", cascade="all, delete-orphan"
     )
+    
+    forked_from: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    
     def __repr__(self) -> str:
         return f"<Recipe {self.ap_id}>"
 

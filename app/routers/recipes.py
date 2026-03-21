@@ -16,6 +16,7 @@
 #   The API response is returned immediately — delivery is async.
 
 import uuid
+import httpx
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -156,6 +157,7 @@ class RecipeOut(BaseModel):
     ingredients: list[IngredientOut]
     likes_count: int = 0
     announces_count: int = 0
+    forked_from: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -179,7 +181,10 @@ class RecipeListItem(BaseModel):
 
     model_config = {"from_attributes": True}
 
-
+class ForkRequest(BaseModel):
+    """Request body for forking a remote recipe."""
+    ap_id: str  # AP ID of the remote recipe to fork
+    
 # ============================================================
 # Helpers
 # ============================================================
@@ -523,3 +528,145 @@ async def delete_recipe(
     # Deliver Delete{Tombstone} to followers
     if was_published:
         _trigger_delivery(recipe_id, "delete")
+
+@router.post("/fork", response_model=RecipeOut, status_code=status.HTTP_201_CREATED)
+async def fork_recipe(
+    data: ForkRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Fork a remote recipe.
+
+    Fetches the recipe from the remote server using its AP ID,
+    creates a local copy owned by the authenticated user, and
+    records the original AP ID in the forked_from field.
+
+    The forked recipe is saved as a draft — the user can review
+    and publish it when ready.
+    """
+
+    # Fetch the remote recipe
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                data.ap_id,
+                headers={"Accept": "application/activity+json"},
+                follow_redirects=True,
+            )
+            if resp.status_code != 200:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Could not fetch remote recipe: HTTP {resp.status_code}",
+                )
+            remote = resp.json()
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Could not fetch remote recipe: {exc}",
+        )
+
+    # Validate that this looks like a Pasticcio recipe Article
+    if remote.get("type") != "Article":
+        raise HTTPException(
+            status_code=422,
+            detail="The provided AP ID does not point to a recipe (Article)",
+        )
+
+    # Extract title from name or pasticcio:title
+    title = (
+        remote.get("name")
+        or remote.get("pasticcio:title")
+        or "Forked recipe"
+    )
+
+    # Extract description
+    description = remote.get("summary") or remote.get("content") or None
+
+    # Extract dietary tags
+    dietary_tags = []
+    for tag in remote.get("tag", []):
+        if isinstance(tag, dict) and tag.get("type") == "Hashtag":
+            name = tag.get("name", "").lstrip("#").lower()
+            if name and name not in ("cookedthis",):
+                dietary_tags.append(name)
+
+    # Extract pasticcio-specific fields if present
+    servings = remote.get("pasticcio:servings")
+    prep_time = remote.get("pasticcio:prepTime")
+    cook_time = remote.get("pasticcio:cookTime")
+
+    # Convert ISO 8601 durations to seconds if present
+    prep_seconds = None
+    cook_seconds = None
+    if prep_time:
+        try:
+            import isodate
+            prep_seconds = int(isodate.parse_duration(prep_time).total_seconds())
+        except Exception:
+            pass
+    if cook_time:
+        try:
+            import isodate
+            cook_seconds = int(isodate.parse_duration(cook_time).total_seconds())
+        except Exception:
+            pass
+
+    # Generate slug from title
+    base_slug = slugify(title)
+    slug = base_slug
+    existing = await db.execute(
+        select(Recipe).where(
+            and_(Recipe.author_id == current_user.id, Recipe.slug == slug)
+        )
+    )
+    if existing.scalar_one_or_none():
+        import uuid as _uuid
+        slug = f"{base_slug}-{str(_uuid.uuid4())[:8]}"
+
+    recipe_id = uuid.uuid4()
+    ap_id = _build_ap_id(current_user.username, slug)
+
+    recipe = Recipe(
+        id=recipe_id,
+        author_id=current_user.id,
+        slug=slug,
+        ap_id=ap_id,
+        original_language=remote.get("inLanguage", current_user.preferred_language or "en"),
+        status=RecipeStatus.DRAFT,
+        published_at=None,
+        dietary_tags=dietary_tags,
+        metabolic_tags=[],
+        show_metabolic_disclaimer=False,
+        prep_time_seconds=prep_seconds,
+        cook_time_seconds=cook_seconds,
+        servings=int(servings) if servings else None,
+        forked_from=data.ap_id,
+    )
+    db.add(recipe)
+    await db.flush()
+
+    # Add translation from remote content
+    translation = RecipeTranslation(
+        recipe_id=recipe_id,
+        language=remote.get("inLanguage", current_user.preferred_language or "en"),
+        title=title,
+        description=description,
+        steps=[],  # Steps are not easily extractable from generic AP content
+        status=TranslationStatus.ORIGINAL,
+        translated_by_id=None,
+    )
+    db.add(translation)
+    await db.flush()
+
+    # Reload for response
+    result = await db.execute(
+        select(Recipe)
+        .where(Recipe.id == recipe_id)
+        .options(
+            selectinload(Recipe.author),
+            selectinload(Recipe.translations),
+            selectinload(Recipe.ingredients),
+        )
+    )
+    return result.scalar_one()
