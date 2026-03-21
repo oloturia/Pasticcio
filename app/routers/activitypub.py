@@ -452,70 +452,94 @@ async def inbox(
         db.add(comment)
         await db.flush()
         return Response(status_code=202)
+
     # ----------------------------------------------------------
-    # Update{Note} — remote actor edited a comment
+    # Update{Note} or Update{Article}
     # ----------------------------------------------------------
     if activity_type == "Update":
         obj = raw.get("object", {})
-        if not isinstance(obj, dict) or obj.get("type") != "Note":
+        if not isinstance(obj, dict):
             return Response(status_code=202)
 
-        note_ap_id = obj.get("id")
-        if not note_ap_id:
-            return Response(status_code=202)
+        obj_type = obj.get("type")
 
-        # Strip HTML tags from updated content
-        raw_content = obj.get("content", "") or obj.get("name", "") or ""
-        plain_content = re.sub(r"<[^>]+>", "", raw_content).strip()
-        if not plain_content:
-            return Response(status_code=202)
+        if obj_type == "Note":
+            note_ap_id = obj.get("id")
+            if not note_ap_id:
+                return Response(status_code=202)
 
-        result = await db.execute(
-            select(CookedThis).where(
-                CookedThis.ap_id == note_ap_id,
-                CookedThis.actor_ap_id == actor_url,  # only the original author can update
+            raw_content = obj.get("content", "") or obj.get("name", "") or ""
+            plain_content = re.sub(r"<[^>]+>", "", raw_content).strip()
+            if not plain_content:
+                return Response(status_code=202)
+
+            result = await db.execute(
+                select(CookedThis).where(
+                    CookedThis.ap_id == note_ap_id,
+                    CookedThis.actor_ap_id == actor_url,
+                )
             )
-        )
-        comment = result.scalar_one_or_none()
-        if comment:
-            comment.content = plain_content
-            await db.flush()
+            comment = result.scalar_one_or_none()
+            if comment:
+                comment.content = plain_content
+                await db.flush()
+
+        elif obj_type == "Article":
+            # We do not auto-update forks — user owns their fork.
+            # Just acknowledge.
+            pass
 
         return Response(status_code=202)
 
     # ----------------------------------------------------------
-    # Delete{Note} — remote actor deleted a comment
+    # Delete{Note} or Delete{Article}
     # ----------------------------------------------------------
     if activity_type == "Delete":
         obj = raw.get("object")
 
-        # Mastodon sends the object as a plain string (just the AP ID)
-        # other servers may send a dict with "id" and "type"
         if isinstance(obj, str):
-            note_ap_id = obj
+            obj_id = obj
+            obj_type = None
         elif isinstance(obj, dict):
-            note_ap_id = obj.get("id")
+            obj_id = obj.get("id")
+            obj_type = obj.get("type")
         else:
             return Response(status_code=202)
 
-        if not note_ap_id:
+        if not obj_id:
             return Response(status_code=202)
 
-        result = await db.execute(
-            select(CookedThis).where(
-                CookedThis.ap_id == note_ap_id,
-                CookedThis.actor_ap_id == actor_url,  # only the original author can delete
+        if obj_type == "Article" or (obj_type is None and obj_id.startswith(f"https://{settings.instance_domain}")):
+            # Try to delete a local recipe
+            result = await db.execute(
+                select(Recipe).where(
+                    Recipe.ap_id == obj_id,
+                    Recipe.status != RecipeStatus.DELETED,
+                )
             )
-        )
-        comment = result.scalar_one_or_none()
-        if comment:
-            await db.delete(comment)
-            await db.flush()
+            recipe = result.scalar_one_or_none()
+            if recipe:
+                author_result = await db.execute(
+                    select(User).where(User.id == recipe.author_id)
+                )
+                author = author_result.scalar_one_or_none()
+                if author and author.ap_id == actor_url:
+                    recipe.status = RecipeStatus.DELETED
+                    await db.flush()
+        else:
+            # Try to delete a local comment (Note)
+            result = await db.execute(
+                select(CookedThis).where(
+                    CookedThis.ap_id == obj_id,
+                    CookedThis.actor_ap_id == actor_url,
+                )
+            )
+            comment = result.scalar_one_or_none()
+            if comment:
+                await db.delete(comment)
+                await db.flush()
 
         return Response(status_code=202)
-    # All other types — acknowledge
-    logger.debug("Unhandled activity type: %s", activity_type)
-    return Response(status_code=202)
 
     # ----------------------------------------------------------
     # Update{Article} — remote server updated a recipe
