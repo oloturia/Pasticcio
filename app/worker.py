@@ -44,6 +44,6 @@ celery_app.conf.update(
 
     # Automatically discover tasks in app/tasks/
     # Celery will import any module named "tasks" inside installed apps.
-    imports=["app.tasks.delivery"],
+    imports=["app.tasks.delivery", "app.tasks.instances"],
     broker_connection_retry_on_startup=True,
 )

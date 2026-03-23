@@ -258,6 +258,9 @@ async def inbox(
     allowed, reason = await check_rate_limit(client_ip, actor_url_for_limit)
     if not allowed:
         raise HTTPException(status_code=429, detail=reason)
+    
+    from app.ap.instances import record_instance
+    await record_instance(raw.get("actor", ""), db)    
         
     actor_url = raw.get("actor")
     if not actor_url:

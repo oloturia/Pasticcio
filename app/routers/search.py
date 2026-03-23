@@ -36,6 +36,9 @@ from app.models.recipe import (
     RecipeTranslation,
 )
 
+from app.ap.instances import get_pasticcio_instances
+from app.models.known_instance import KnownInstance
+
 router = APIRouter(prefix="/api/v1/search", tags=["search"])
 
 
@@ -245,3 +248,108 @@ async def search_recipes(
         output.sort(key=lambda r: r.ingredient_match_count, reverse=True)
 
     return output
+    
+@router.get("/federated", response_model=list[SearchResult])
+async def federated_search(
+    q: str | None = Query(default=None),
+    tags: str | None = Query(default=None),
+    ingredients: str | None = Query(default=None),
+    exclude_ingredients: str | None = Query(default=None),
+    language: str | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=20, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Search recipes across all known Pasticcio instances.
+
+    Queries this instance plus all known Pasticcio instances.
+    Results are aggregated and sorted by published_at.
+    Remote results cannot be paginated the same way as local ones.
+    """
+    # Get local results first
+    local_results = await search_recipes(
+        q=q, tags=tags, ingredients=ingredients,
+        exclude_ingredients=exclude_ingredients,
+        language=language, page=page, per_page=per_page, db=db,
+    )
+
+    # Get known Pasticcio instances
+    instances = await get_pasticcio_instances(db)
+    if not instances:
+        return local_results
+
+    # Query each remote instance
+    remote_results = []
+    params = {}
+    if q:
+        params["q"] = q
+    if tags:
+        params["tags"] = tags
+    if ingredients:
+        params["ingredients"] = ingredients
+    if exclude_ingredients:
+        params["exclude_ingredients"] = exclude_ingredients
+    if language:
+        params["language"] = language
+    params["per_page"] = per_page
+
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        for domain in instances:
+            try:
+                resp = await client.get(
+                    f"https://{domain}/api/v1/search/",
+                    params=params,
+                )
+                if resp.status_code == 200:
+                    for item in resp.json():
+                        # Convert remote result to SearchResult
+                        # Remote results won\'t have full author objects
+                        # so we use minimal data
+                        try:
+                            remote_results.append(SearchResult(
+                                id=item["id"],
+                                slug=item["slug"],
+                                ap_id=item["ap_id"],
+                                original_language=item.get("original_language", "en"),
+                                dietary_tags=item.get("dietary_tags", []),
+                                metabolic_tags=item.get("metabolic_tags", []),
+                                servings=item.get("servings"),
+                                published_at=item.get("published_at"),
+                                forked_from=item.get("forked_from"),
+                                author=AuthorSummary(
+                                    username=item["author"]["username"],
+                                    display_name=item["author"].get("display_name"),
+                                    ap_id=item["author"]["ap_id"],
+                                ),
+                                translations=[
+                                    TranslationSummary(
+                                        language=t["language"],
+                                        title=t["title"],
+                                        description=t.get("description"),
+                                    )
+                                    for t in item.get("translations", [])
+                                ],
+                                ingredient_match_count=item.get("ingredient_match_count", 0),
+                            ))
+                        except Exception:
+                            pass
+            except httpx.RequestError:
+                pass  # Remote instance unreachable — skip silently
+
+    # Combine and sort by published_at descending
+    all_results = local_results + remote_results
+    all_results.sort(
+        key=lambda r: r.published_at or "",
+        reverse=True,
+    )
+
+    # Deduplicate by ap_id
+    seen = set()
+    deduped = []
+    for r in all_results:
+        if r.ap_id not in seen:
+            seen.add(r.ap_id)
+            deduped.append(r)
+
+    return deduped[:per_page]

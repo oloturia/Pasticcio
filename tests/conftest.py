@@ -45,6 +45,7 @@ TABLES_TO_TRUNCATE = [
     "followers",
     "food_items",
     "users",
+    "known_instances",
 ]
 
 
