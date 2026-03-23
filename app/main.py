@@ -15,6 +15,7 @@ from app.config import settings
 from app.routers import auth, recipes, wellknown, activitypub, comments
 from app.routers import users
 from app.routers import photos
+from app.routers import search
 
 from fastapi.staticfiles import StaticFiles
 import os
@@ -63,6 +64,7 @@ app.include_router(activitypub.router)  # /users/{username}, /users/{username}/i
 app.include_router(comments.router)
 app.include_router(users.router)
 app.include_router(photos.router)
+app.include_router(search.router)
 
 # --- Root ---
 @app.get("/", tags=["system"])
