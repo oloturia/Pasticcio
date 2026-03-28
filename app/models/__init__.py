@@ -40,9 +40,7 @@ __all__ = [
 ]
 
 from app.models.follower import Follower
-
 from app.models.cooked_this import CookedThis
-
 from app.models.reaction import Reaction, ReactionType
-
 from app.models.known_instance import KnownInstance
+from app.models.moderation import Bookmark, BlockType, InstanceRule, RuleType, UserBlock

@@ -17,6 +17,7 @@ from app.routers import users
 from app.routers import photos
 from app.routers import search
 from app.routers import lookup
+from app.routers import moderation
 
 from fastapi.staticfiles import StaticFiles
 import os
@@ -67,6 +68,7 @@ app.include_router(users.router)
 app.include_router(photos.router)
 app.include_router(search.router)
 app.include_router(lookup.router)
+app.include_router(moderation.router)
 
 # --- Root ---
 @app.get("/", tags=["system"])

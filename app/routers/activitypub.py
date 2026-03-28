@@ -258,13 +258,17 @@ async def inbox(
     allowed, reason = await check_rate_limit(client_ip, actor_url_for_limit)
     if not allowed:
         raise HTTPException(status_code=429, detail=reason)
-    
+        
     from app.ap.instances import record_instance
     await record_instance(raw.get("actor", ""), db)    
         
     actor_url = raw.get("actor")
     if not actor_url:
         raise HTTPException(status_code=400, detail="Missing actor field")
+
+    from app.ap.federation import is_federation_allowed
+    if not await is_federation_allowed(actor_url, db):
+        raise HTTPException(status_code=403, detail="Federation not allowed")   
 
     remote_actor = await _fetch_remote_actor(actor_url)
     if not remote_actor:

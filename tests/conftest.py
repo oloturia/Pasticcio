@@ -46,6 +46,9 @@ TABLES_TO_TRUNCATE = [
     "food_items",
     "users",
     "known_instances",
+    "user_blocks",
+    "instance_rules",
+    "bookmarks",    
 ]
 
 
