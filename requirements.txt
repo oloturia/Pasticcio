@@ -60,3 +60,6 @@ pytest~=8.2.0
 pytest-asyncio~=0.23.0
 # Async test utilities
 anyio~=4.4.0
+
+# --- Mail validation ---
+fastapi-mail~=1.4.0

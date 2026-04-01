@@ -18,7 +18,10 @@ from app.routers import photos
 from app.routers import search
 from app.routers import lookup
 from app.routers import moderation
-
+from app.routers import home
+from app.routers import frontend_auth
+from app.routers import recipe_form
+from app.routers import search_page
 from fastapi.staticfiles import StaticFiles
 import os
 
@@ -35,6 +38,7 @@ app = FastAPI(
 # Mount media directory for uploaded files
 os.makedirs(settings.media_root, exist_ok=True)
 app.mount("/media", StaticFiles(directory=settings.media_root), name="media")
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # --- CORS ---
 app.add_middleware(
@@ -59,6 +63,7 @@ async def health_check():
 
 
 # --- Routers ---
+app.include_router(home.router)
 app.include_router(auth.router)
 app.include_router(recipes.router)
 app.include_router(wellknown.router)    # /.well-known/webfinger, /nodeinfo
@@ -69,9 +74,12 @@ app.include_router(photos.router)
 app.include_router(search.router)
 app.include_router(lookup.router)
 app.include_router(moderation.router)
+app.include_router(frontend_auth.router)
+app.include_router(recipe_form.router)
+app.include_router(search_page.router)
 
 # --- Root ---
-@app.get("/", tags=["system"])
+
 async def root():
     return {
         "name": settings.instance_name,

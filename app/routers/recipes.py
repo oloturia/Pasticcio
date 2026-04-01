@@ -44,8 +44,8 @@ from app.routers.auth import get_current_user
 
 from app.tasks.delivery import deliver_to_followers
 
-from fastapi.templating import Jinja2Templates
-templates = Jinja2Templates(directory="app/templates")
+from app.templates_env import templates
+from app.dependencies import get_current_user_optional
 
 router = APIRouter(prefix="/api/v1/recipes", tags=["recipes"])
 
@@ -342,6 +342,7 @@ async def get_recipe(
     recipe_id: uuid.UUID,
     request: Request,
     db: AsyncSession = Depends(get_db),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """Get a single recipe by ID. Returns HTML for browsers, JSON for AP clients."""
     result = await db.execute(
@@ -351,10 +352,15 @@ async def get_recipe(
             selectinload(Recipe.author),
             selectinload(Recipe.translations),
             selectinload(Recipe.ingredients),
+            selectinload(Recipe.photos),
+            selectinload(Recipe.step_photos), 
         )
     )
     recipe = result.scalar_one_or_none()
-
+    step_photo_map = {
+        p.step_order: f"/media/{p.url}"
+        for p in recipe.step_photos
+    }
     if not recipe or recipe.status == RecipeStatus.DELETED:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recipe not found")
 
@@ -367,6 +373,10 @@ async def get_recipe(
         )
         steps = sorted(translation.steps, key=lambda s: s.get("order", 0)) if translation else []
 
+        cover = next((p for p in recipe.photos if p.is_cover), None)
+        if cover is None and recipe.photos:
+            cover = recipe.photos[0]
+
         return templates.TemplateResponse(
             "recipe_detail.html",
             {
@@ -375,6 +385,10 @@ async def get_recipe(
                 "translation": translation,
                 "ingredients": recipe.ingredients,
                 "steps": steps,
+                "cover_url": f"/media/{cover.url}" if cover else None,
+                "cover_alt": cover.alt_text if cover else None,
+                "step_photo_map": step_photo_map,
+                "current_user": current_user,  
             },
         )
 

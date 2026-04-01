@@ -31,8 +31,9 @@ from app.models.reaction import Reaction, ReactionType
 from app.models.recipe import Recipe, RecipeStatus
 from app.models.user import User
 from app.ap.ratelimit import check_rate_limit
-from fastapi.templating import Jinja2Templates
+from app.templates_env import templates
 from fastapi import Request as FastAPIRequest
+from app.dependencies import get_current_user_optional
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +41,6 @@ router = APIRouter(tags=["activitypub"])
 
 AP_CONTENT_TYPE = "application/activity+json"
 PAGE_SIZE = 20
-
-templates = Jinja2Templates(directory="app/templates")
 
 # ============================================================
 # Helpers
@@ -103,6 +102,7 @@ async def get_actor(
     username: str,
     request: Request,
     db: AsyncSession = Depends(get_db),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """
     Return the AP Actor profile for a local user.
@@ -148,6 +148,7 @@ async def get_actor(
             {
                 "request": request,
                 "user": user,
+                "current_user": current_user,
                 "recipes": recipe_list,
                 "instance_domain": settings.instance_domain,
             },

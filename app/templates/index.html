@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}{{ instance_name }} — federated recipe network{% endblock %}
+
+{% block content %}
+<div class="page-wide">
+
+    <p class="section-heading">Recent recipes</p>
+
+    {% if recipes %}
+    <div class="recipe-grid">
+        {% for recipe in recipes %}
+        <article class="recipe-card">
+
+            {# Cover photo if present, placeholder otherwise #}
+            {% if recipe.cover_url %}
+            <img
+                class="recipe-card-cover"
+                src="{{ recipe.cover_url }}"
+                alt="{{ recipe.cover_alt or recipe.title }}"
+                loading="lazy"
+            >
+            {% else %}
+            <div class="recipe-card-cover-placeholder" aria-hidden="true">🍽</div>
+            {% endif %}
+
+            <div class="recipe-card-body">
+
+                <h2 class="recipe-card-title">
+                    <a href="/api/v1/recipes/{{ recipe.id }}">{{ recipe.title }}</a>
+                </h2>
+
+                <p class="recipe-card-author">
+                    by <a href="/users/{{ recipe.author_username }}">
+                        {{ recipe.author_display_name or recipe.author_username }}
+                    </a>
+                </p>
+
+                {# Dietary tags #}
+                {% if recipe.dietary_tags %}
+                <div class="recipe-card-tags">
+                    {% for tag in recipe.dietary_tags %}
+                    <span class="tag">{{ tag }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {# Timing and servings metadata #}
+                <div class="recipe-card-meta">
+                    {% if recipe.prep_time_seconds %}
+                    <span>⏱ {{ (recipe.prep_time_seconds // 60) }} min prep</span>
+                    {% endif %}
+                    {% if recipe.cook_time_seconds %}
+                    <span>🔥 {{ (recipe.cook_time_seconds // 60) }} min cook</span>
+                    {% endif %}
+                    {% if recipe.servings %}
+                    <span>🍽 {{ recipe.servings }} servings</span>
+                    {% endif %}
+                    {% if recipe.published_at %}
+                    <span>{{ recipe.published_at[:10] }}</span>
+                    {% endif %}
+                </div>
+
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+
+    {# Pagination #}
+    {% if page > 1 or has_next %}
+    <nav class="pagination" aria-label="Pagination">
+        {% if page > 1 %}
+        <a href="/?page={{ page - 1 }}">← Previous</a>
+        {% endif %}
+        <span class="current">{{ page }}</span>
+        {% if has_next %}
+        <a href="/?page={{ page + 1 }}">Next →</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+
+    {% else %}
+    {# Empty state — shown when there are no published recipes yet #}
+    <div class="empty-state">
+        <div class="empty-state-icon">🍝</div>
+        <p>No recipes published yet.</p>
+        <p style="margin-top:0.5rem;font-size:0.85rem;">
+            Be the first — <a href="/api/v1/auth/register">create an account</a>
+            and share a recipe.
+        </p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

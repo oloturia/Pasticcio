@@ -1,0 +1,507 @@
+{% extends "base.html" %}
+
+{% block title %}New recipe — Pasticcio{% endblock %}
+
+{% block extra_head %}
+<style>
+    .form-section {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        margin-bottom: 1.25rem;
+    }
+    .form-section h2 {
+        margin-top: 0;
+        margin-bottom: 1rem;
+        font-size: 1rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-faint);
+    }
+    .field { margin-bottom: 1rem; }
+    .field:last-child { margin-bottom: 0; }
+    .field label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+    }
+    .field input[type="text"],
+    .field input[type="number"],
+    .field textarea,
+    .field select {
+        width: 100%;
+        padding: 0.55rem 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        font-size: 0.95rem;
+        font-family: inherit;
+        background: #fff;
+        color: var(--text);
+        outline: none;
+        transition: border-color 0.15s;
+    }
+    .field input:focus,
+    .field textarea:focus,
+    .field select:focus { border-color: var(--accent); }
+    .field textarea { resize: vertical; min-height: 80px; }
+    .field small { color: var(--text-faint); font-size: 0.8rem; display: block; margin-top: 0.25rem; }
+
+    /* Two-column row for short fields */
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+    @media (max-width: 540px) {
+        .field-row, .field-row-3 { grid-template-columns: 1fr; }
+    }
+
+    /* Dynamic ingredient rows */
+    .ingredient-row {
+        display: grid;
+        grid-template-columns: 80px 100px 1fr 120px 32px;
+        gap: 0.5rem;
+        align-items: start;
+        margin-bottom: 0.5rem;
+    }
+    @media (max-width: 600px) {
+        .ingredient-row { grid-template-columns: 1fr 1fr; }
+        .ingredient-row .remove-btn { grid-column: 2; justify-self: end; }
+    }
+
+    /* Dynamic step rows */
+    .step-row {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        position: relative;
+        background: var(--bg);
+    }
+    .step-row-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+    .step-number {
+        background: var(--accent);
+        color: #fff;
+        width: 1.6rem;
+        height: 1.6rem;
+        border-radius: 50%;
+        font-size: 0.75rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .step-photo-preview {
+        width: 80px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 4px;
+        border: 1px solid var(--border);
+    }
+
+    /* Tag checkboxes */
+    .tag-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .tag-grid label {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.85rem;
+        font-weight: normal;
+        cursor: pointer;
+        background: var(--muted);
+        padding: 0.3rem 0.65rem;
+        border-radius: 3px;
+        border: 1px solid transparent;
+        transition: border-color 0.15s, background 0.15s;
+    }
+    .tag-grid input[type="checkbox"] { accent-color: var(--accent); }
+    .tag-grid label:has(input:checked) {
+        background: var(--accent-bg);
+        border-color: var(--accent);
+        color: var(--accent);
+        font-weight: 600;
+    }
+
+    /* Add / remove buttons */
+    .add-btn {
+        background: none;
+        border: 1px dashed var(--border);
+        border-radius: var(--radius);
+        color: var(--text-soft);
+        padding: 0.45rem 0.9rem;
+        font-size: 0.85rem;
+        cursor: pointer;
+        width: 100%;
+        text-align: left;
+        transition: border-color 0.15s, color 0.15s;
+        font-family: inherit;
+    }
+    .add-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .remove-btn {
+        background: none;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        color: var(--text-faint);
+        width: 32px;
+        height: 32px;
+        cursor: pointer;
+        font-size: 1rem;
+        line-height: 1;
+        transition: border-color 0.15s, color 0.15s;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .remove-btn:hover { border-color: #c0392b; color: #c0392b; }
+
+    /* Action bar */
+    .action-bar {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+        margin-top: 1.5rem;
+        flex-wrap: wrap;
+    }
+    .btn-draft {
+        padding: 0.6rem 1.25rem;
+        background: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+        transition: border-color 0.15s;
+    }
+    .btn-draft:hover { border-color: var(--accent); }
+    .btn-publish {
+        padding: 0.6rem 1.25rem;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: var(--radius);
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+        transition: background 0.15s;
+    }
+    .btn-publish:hover { background: #9a4516; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-narrow">
+
+    <h1 style="margin-bottom:1.5rem;">New recipe</h1>
+
+    {% if error %}
+    <p style="color:#b5541a;background:#fdf3ee;border:1px solid #f5c9b0;
+              border-radius:6px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.9rem;">
+        {{ error }}
+    </p>
+    {% endif %}
+
+    <form method="post" action="/recipes/new" enctype="multipart/form-data" id="recipe-form">
+
+        {# ── Basic info ── #}
+        <div class="form-section">
+            <h2>Basic info</h2>
+
+            <div class="field">
+                <label for="title">Title <span style="color:#c0392b;">*</span></label>
+                <input type="text" id="title" name="title" required maxlength="256"
+                       value="{{ form.title or '' }}" placeholder="e.g. Spaghetti al pomodoro">
+            </div>
+
+            <div class="field">
+                <label for="description">Description</label>
+                <textarea id="description" name="description"
+                          placeholder="A short introduction to the recipe…">{{ form.description or '' }}</textarea>
+            </div>
+
+            <div class="field-row">
+                <div class="field">
+                    <label for="language">Language</label>
+                    <select id="language" name="language">
+                        <option value="en" {% if (form.language or 'en') == 'en' %}selected{% endif %}>English</option>
+                        <option value="it" {% if form.language == 'it' %}selected{% endif %}>Italiano</option>
+                        <option value="fr" {% if form.language == 'fr' %}selected{% endif %}>Français</option>
+                        <option value="de" {% if form.language == 'de' %}selected{% endif %}>Deutsch</option>
+                        <option value="es" {% if form.language == 'es' %}selected{% endif %}>Español</option>
+                        <option value="pt" {% if form.language == 'pt' %}selected{% endif %}>Português</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="difficulty">Difficulty</label>
+                    <select id="difficulty" name="difficulty">
+                        <option value="">— not specified —</option>
+                        <option value="easy"   {% if form.difficulty == 'easy'   %}selected{% endif %}>Easy</option>
+                        <option value="medium" {% if form.difficulty == 'medium' %}selected{% endif %}>Medium</option>
+                        <option value="hard"   {% if form.difficulty == 'hard'   %}selected{% endif %}>Hard</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        {# ── Timings and servings ── #}
+        <div class="form-section">
+            <h2>Timings &amp; servings</h2>
+            <div class="field-row-3">
+                <div class="field">
+                    <label for="prep_time">Prep time (min)</label>
+                    <input type="number" id="prep_time" name="prep_time" min="0" max="9999"
+                           value="{{ form.prep_time or '' }}" placeholder="15">
+                </div>
+                <div class="field">
+                    <label for="cook_time">Cook time (min)</label>
+                    <input type="number" id="cook_time" name="cook_time" min="0" max="9999"
+                           value="{{ form.cook_time or '' }}" placeholder="30">
+                </div>
+                <div class="field">
+                    <label for="servings">Servings</label>
+                    <input type="number" id="servings" name="servings" min="1" max="999"
+                           value="{{ form.servings or '' }}" placeholder="4">
+                </div>
+            </div>
+        </div>
+
+        {# ── Cover photo ── #}
+        <div class="form-section">
+            <h2>Cover photo</h2>
+            <div class="field">
+                <label for="cover_photo">Image (JPEG, PNG, WebP — max 10 MB)</label>
+                <input type="file" id="cover_photo" name="cover_photo"
+                       accept="image/jpeg,image/png,image/webp,image/gif">
+            </div>
+        </div>
+
+        {# ── Dietary tags ── #}
+        <div class="form-section">
+            <h2>Dietary tags</h2>
+            <div class="tag-grid">
+                {% set dietary_options = [
+                    ('vegan',          'Vegan'),
+                    ('vegetarian',     'Vegetarian'),
+                    ('pescatarian',    'Pescatarian'),
+                    ('gluten_free',    'Gluten-free'),
+                    ('nut_free',       'Nut-free'),
+                    ('soy_free',       'Soy-free'),
+                    ('lactose_free',   'Lactose-free'),
+                    ('contains_eggs',  'Contains eggs'),
+                    ('contains_dairy', 'Contains dairy'),
+                ] %}
+                {% for value, label in dietary_options %}
+                <label>
+                    <input type="checkbox" name="dietary_tags" value="{{ value }}"
+                           {% if value in (form.dietary_tags or []) %}checked{% endif %}>
+                    {{ label }}
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        {# ── Ingredients ── #}
+        <div class="form-section">
+            <h2>Ingredients</h2>
+            <div style="display:grid;grid-template-columns:80px 100px 1fr 120px 32px;gap:0.5rem;
+                        margin-bottom:0.4rem;">
+                <small style="color:var(--text-faint);">Qty</small>
+                <small style="color:var(--text-faint);">Unit</small>
+                <small style="color:var(--text-faint);">Ingredient</small>
+                <small style="color:var(--text-faint);">Notes</small>
+                <span></span>
+            </div>
+            <div id="ingredients-list">
+                {# Pre-filled rows on validation error #}
+                {% if form.ingredients %}
+                    {% for ing in form.ingredients %}
+                    <div class="ingredient-row">
+                        <input type="number" name="ing_qty[]" step="any" min="0"
+                               placeholder="200" value="{{ ing.qty or '' }}">
+                        <select name="ing_unit[]">
+                            {{ unit_options(ing.unit or '') }}
+                        </select>
+                        <input type="text" name="ing_name[]" required
+                               placeholder="e.g. flour" value="{{ ing.name or '' }}">
+                        <input type="text" name="ing_notes[]"
+                               placeholder="optional" value="{{ ing.notes or '' }}">
+                        <button type="button" class="remove-btn" onclick="removeRow(this)">×</button>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                {# Default: one empty row #}
+                <div class="ingredient-row">
+                    <input type="number" name="ing_qty[]" step="any" min="0" placeholder="200">
+                    <select name="ing_unit[]">{{ unit_options_html | safe }}</select>
+                    <input type="text" name="ing_name[]" required placeholder="e.g. flour">
+                    <input type="text" name="ing_notes[]" placeholder="optional">
+                    <button type="button" class="remove-btn" onclick="removeRow(this)">×</button>
+                </div>
+                {% endif %}
+            </div>
+            <button type="button" class="add-btn" onclick="addIngredient()">+ Add ingredient</button>
+        </div>
+
+        {# ── Steps ── #}
+        <div class="form-section">
+            <h2>Steps</h2>
+            <div id="steps-list">
+                {# Default: one empty step #}
+                <div class="step-row" data-step="1">
+                    <div class="step-row-header">
+                        <span class="step-number">1</span>
+                        <span style="font-size:0.85rem;color:var(--text-soft);flex:1;">Step 1</span>
+                        <button type="button" class="remove-btn" onclick="removeStep(this)">×</button>
+                    </div>
+                    <div class="field">
+                        <textarea name="step_text[]" rows="2"
+                                  placeholder="Describe this step…" required></textarea>
+                    </div>
+                    <div class="field">
+                        <label style="font-weight:normal;font-size:0.82rem;color:var(--text-soft);">
+                            Photo for this step (optional)
+                        </label>
+                        <input type="file" name="step_photo[]"
+                               accept="image/jpeg,image/png,image/webp"
+                               onchange="previewStepPhoto(this)">
+                        <img class="step-photo-preview" style="display:none;margin-top:0.5rem;">
+                    </div>
+                </div>
+            </div>
+            <button type="button" class="add-btn" onclick="addStep()">+ Add step</button>
+        </div>
+
+        {# ── Action bar ── #}
+        <div class="action-bar">
+            <button type="submit" name="publish" value="0" class="btn-draft">
+                Save as draft
+            </button>
+            <button type="submit" name="publish" value="1" class="btn-publish">
+                Publish
+            </button>
+        </div>
+
+    </form>
+
+</div>
+
+<script>
+// ============================================================
+// Unit options HTML — injected by the server and reused by JS
+// ============================================================
+const UNIT_OPTIONS_HTML = {{ unit_options_html | tojson }};
+
+// ============================================================
+// Ingredients
+// ============================================================
+function addIngredient() {
+    const list = document.getElementById('ingredients-list');
+    const row = document.createElement('div');
+    row.className = 'ingredient-row';
+    row.innerHTML = `
+        <input type="number" name="ing_qty[]" step="any" min="0" placeholder="200">
+        <select name="ing_unit[]">${UNIT_OPTIONS_HTML}</select>
+        <input type="text" name="ing_name[]" required placeholder="e.g. flour">
+        <input type="text" name="ing_notes[]" placeholder="optional">
+        <button type="button" class="remove-btn" onclick="removeRow(this)">×</button>
+    `;
+    list.appendChild(row);
+    row.querySelector('input[name="ing_name[]"]').focus();
+}
+
+function removeRow(btn) {
+    const row = btn.closest('.ingredient-row');
+    // Keep at least one row
+    const list = document.getElementById('ingredients-list');
+    if (list.querySelectorAll('.ingredient-row').length > 1) {
+        row.remove();
+    }
+}
+
+// ============================================================
+// Steps
+// ============================================================
+let stepCount = 1;
+
+function addStep() {
+    stepCount++;
+    const list = document.getElementById('steps-list');
+    const div = document.createElement('div');
+    div.className = 'step-row';
+    div.dataset.step = stepCount;
+    div.innerHTML = `
+        <div class="step-row-header">
+            <span class="step-number">${stepCount}</span>
+            <span style="font-size:0.85rem;color:var(--text-soft);flex:1;">Step ${stepCount}</span>
+            <button type="button" class="remove-btn" onclick="removeStep(this)">×</button>
+        </div>
+        <div class="field">
+            <textarea name="step_text[]" rows="2"
+                      placeholder="Describe this step…" required></textarea>
+        </div>
+        <div class="field">
+            <label style="font-weight:normal;font-size:0.82rem;color:var(--text-soft);">
+                Photo for this step (optional)
+            </label>
+            <input type="file" name="step_photo[]"
+                   accept="image/jpeg,image/png,image/webp"
+                   onchange="previewStepPhoto(this)">
+            <img class="step-photo-preview" style="display:none;margin-top:0.5rem;">
+        </div>
+    `;
+    list.appendChild(div);
+    div.querySelector('textarea').focus();
+    renumberSteps();
+}
+
+function removeStep(btn) {
+    const row = btn.closest('.step-row');
+    const list = document.getElementById('steps-list');
+    if (list.querySelectorAll('.step-row').length > 1) {
+        row.remove();
+        renumberSteps();
+    }
+}
+
+function renumberSteps() {
+    // After adding or removing a step, update all visible step numbers
+    document.querySelectorAll('#steps-list .step-row').forEach((row, idx) => {
+        const n = idx + 1;
+        row.dataset.step = n;
+        row.querySelector('.step-number').textContent = n;
+        row.querySelector('.step-row-header span:nth-child(2)').textContent = `Step ${n}`;
+    });
+    stepCount = document.querySelectorAll('#steps-list .step-row').length;
+}
+
+// ============================================================
+// Step photo preview
+// ============================================================
+function previewStepPhoto(input) {
+    const img = input.nextElementSibling;
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            img.src = e.target.result;
+            img.style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        img.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

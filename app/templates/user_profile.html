@@ -3,16 +3,17 @@
 {% block title %}{{ user.display_name or user.username }} — Pasticcio{% endblock %}
 
 {% block content %}
-<article>
-    <h1>{{ user.display_name or user.username }}</h1>
+<div class="page-narrow">
 
-    <p class="meta">
-        <a href="{{ user.ap_id }}">@{{ user.username }}@{{ instance_domain }}</a>
-    </p>
-
-    {% if user.bio %}
-    <p class="bio">{{ user.bio }}</p>
-    {% endif %}
+    <header class="profile-header">
+        <h1>{{ user.display_name or user.username }}</h1>
+        <p class="profile-ap-handle">
+            <a href="{{ user.ap_id }}">@{{ user.username }}@{{ instance_domain }}</a>
+        </p>
+        {% if user.bio %}
+        <p class="bio">{{ user.bio }}</p>
+        {% endif %}
+    </header>
 
     <h2>Recent recipes</h2>
 
@@ -28,11 +29,15 @@
         {% endfor %}
     </ul>
     {% else %}
-    <p class="meta">No published recipes yet.</p>
+    <div class="empty-state">
+        <div class="empty-state-icon">🍽</div>
+        <p>No published recipes yet.</p>
+    </div>
     {% endif %}
 
     <p class="ap-link">
         <a href="{{ user.ap_id }}">ActivityPub actor profile</a>
     </p>
-</article>
+
+</div>
 {% endblock %}

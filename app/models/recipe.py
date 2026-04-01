@@ -137,7 +137,7 @@ class Recipe(Base):
     prep_time_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     cook_time_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     servings: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    difficulty: Mapped[Difficulty | None] = mapped_column(Enum(Difficulty, name="difficulttype", native_enum=False), nullable=True)
+    difficulty: Mapped[Difficulty | None] = mapped_column(Enum(Difficulty, name="difficulttype", native_enum=False, values_callable=lambda x: [e.value for e in x]), nullable=True)
 
     # --- Dietary tags ---
     # Stored as a PostgreSQL ARRAY of strings.
@@ -193,6 +193,13 @@ class Recipe(Base):
         "RecipePhoto",
         back_populates="recipe",
         cascade="all, delete-orphan",
+    )
+    
+    step_photos: Mapped[list["RecipeStepPhoto"]] = relationship(
+        "RecipeStepPhoto",
+        back_populates="recipe",
+        cascade="all, delete-orphan",
+        order_by="RecipeStepPhoto.step_order",
     )
     
     reactions: Mapped[list["Reaction"]] = relationship(
@@ -297,7 +304,7 @@ class RecipeIngredient(Base):
     # to avoid floating point weirdness (0.1 + 0.2 ≠ 0.3 in floats).
     quantity: Mapped[float | None] = mapped_column(Numeric(10, 3), nullable=True)
     unit: Mapped[IngredientUnit] = mapped_column(
-        Enum(IngredientUnit, name="ingredientunittype", native_enum=False), default=IngredientUnit.NONE, nullable=False
+        Enum(IngredientUnit, name="ingredientunittype", native_enum=False, values_callable=lambda x: [e.value for e in x]), default=IngredientUnit.NONE, nullable=False
     )
 
     # Free-text name in the recipe's original language
@@ -357,3 +364,40 @@ class RecipePhoto(Base):
 
     def __repr__(self) -> str:
         return f"<RecipePhoto {self.url}>"
+
+# ============================================================
+# RecipeStepPhoto
+# ============================================================
+
+class RecipeStepPhoto(Base):
+    __tablename__ = "recipe_step_photos"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+
+    recipe_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("recipes.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # The order number of the step this photo belongs to (1-based)
+    step_order: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # Path relative to MEDIA_ROOT (e.g. "recipes/uuid/steps/1.jpg")
+    url: Mapped[str] = mapped_column(String(512), nullable=False)
+
+    # Alt text for accessibility
+    alt_text: Mapped[str | None] = mapped_column(String(256), nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    # Relationship back to the recipe
+    recipe: Mapped["Recipe"] = relationship("Recipe", back_populates="step_photos")
+
+    def __repr__(self) -> str:
+        return f"<RecipeStepPhoto recipe={self.recipe_id} step={self.step_order}>"

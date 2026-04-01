@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Pasticcio{% endblock %}</title>
+    <style>
+        /* Minimal reset and base styles — full frontend coming later */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #1a1a1a;
+            background: #fafaf8;
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        a { color: #b5541a; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        header { margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e5e0; }
+        header a.site-name { font-size: 1.4rem; font-weight: 700; color: #1a1a1a; }
+        header small { color: #666; margin-left: 0.5rem; font-size: 0.85rem; }
+
+        footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #e5e5e0;
+                 font-size: 0.85rem; color: #888; }
+
+        h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.25rem; }
+        h2 { font-size: 1.2rem; font-weight: 600; margin: 1.5rem 0 0.75rem; }
+
+        .meta { color: #666; font-size: 0.9rem; margin-bottom: 1rem; }
+        .bio  { margin: 0.75rem 0 1.5rem; color: #333; }
+
+        .recipe-list { list-style: none; }
+        .recipe-list li { padding: 0.6rem 0; border-bottom: 1px solid #f0f0eb; }
+        .recipe-list li:last-child { border-bottom: none; }
+        .recipe-list .date { font-size: 0.8rem; color: #999; margin-left: 0.5rem; }
+
+        .ap-link { font-size: 0.8rem; color: #999; margin-top: 1rem; }
+    </style>
+</head>
+<body>
+    <header>
+        <a class="site-name" href="/">🍝 Pasticcio</a>
+        <small>federated recipe network</small>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>
+            Pasticcio &mdash; federated, open-source recipe network &mdash;
+            <a href="/.well-known/nodeinfo">NodeInfo</a>
+        </p>
+    </footer>
+</body>
+</html>
+{% extends "base.html" %}
+
+{% block title %}{{ user.display_name or user.username }} — Pasticcio{% endblock %}
+
+{% block content %}
+<article>
+    <h1>{{ user.display_name or user.username }}</h1>
+
+    <p class="meta">
+        <a href="{{ user.ap_id }}">@{{ user.username }}@{{ instance_domain }}</a>
+    </p>
+
+    {% if user.bio %}
+    <p class="bio">{{ user.bio }}</p>
+    {% endif %}
+
+    <h2>Recent recipes</h2>
+
+    {% if recipes %}
+    <ul class="recipe-list">
+        {% for recipe in recipes %}
+        <li>
+            <a href="/api/v1/recipes/{{ recipe.id }}">{{ recipe.title or recipe.slug }}</a>
+            {% if recipe.published_at %}
+            <span class="date">{{ recipe.published_at[:10] }}</span>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="meta">No published recipes yet.</p>
+    {% endif %}
+
+    <p class="ap-link">
+        <a href="{{ user.ap_id }}">ActivityPub actor profile</a>
+    </p>
+</article>
+{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}{{ translation.title }} — Pasticcio{% endblock %}
+
+{% block content %}
+<article>
+    <h1>{{ translation.title }}</h1>
+
+    <p class="meta">
+        by <a href="/users/{{ recipe.author.username }}">{{ recipe.author.display_name or recipe.author.username }}</a>
+        {% if recipe.published_at %}
+        &mdash; {{ recipe.published_at.strftime('%Y-%m-%d') }}
+        {% endif %}
+        {% if recipe.difficulty %}
+        &mdash; {{ recipe.difficulty }}
+        {% endif %}
+    </p>
+
+    {% if recipe.dietary_tags %}
+    <p class="meta">
+        {% for tag in recipe.dietary_tags %}
+        <span style="background:#f0f0eb;padding:2px 6px;border-radius:3px;font-size:0.8rem;">{{ tag }}</span>
+        {% endfor %}
+    </p>
+    {% endif %}
+
+    {% if recipe.show_metabolic_disclaimer %}
+    <p class="meta" style="color:#b5541a;">
+        ⚠️ Metabolic tags are the author's own assessment and are not medical recommendations.
+    </p>
+    {% endif %}
+
+    {% if translation.description %}
+    <p class="bio">{{ translation.description }}</p>
+    {% endif %}
+
+    <div style="display:flex;gap:2rem;margin:1rem 0;font-size:0.9rem;color:#666;">
+        {% if recipe.prep_time_seconds %}
+        <span>Prep: {{ (recipe.prep_time_seconds // 60) }}min</span>
+        {% endif %}
+        {% if recipe.cook_time_seconds %}
+        <span>Cook: {{ (recipe.cook_time_seconds // 60) }}min</span>
+        {% endif %}
+        {% if recipe.servings %}
+        <span>Serves: {{ recipe.servings }}</span>
+        {% endif %}
+    </div>
+
+    {% if ingredients %}
+    <h2>Ingredients</h2>
+    <ul class="recipe-list">
+        {% for ing in ingredients %}
+        <li>
+            {% if ing.quantity %}{{ ing.quantity }} {% endif %}
+            {% if ing.unit %}{{ ing.unit }} {% endif %}
+            {{ ing.name }}
+            {% if ing.notes %}<span style="color:#888;font-size:0.85rem;">({{ ing.notes }})</span>{% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if steps %}
+    <h2>Steps</h2>
+    <ol class="recipe-list">
+        {% for step in steps %}
+        <li>{{ step.text }}</li>
+        {% endfor %}
+    </ol>
+    {% endif %}
+
+    <p class="ap-link">
+        <a href="{{ recipe.ap_id }}">ActivityPub object</a>
+    </p>
+</article>
+{% endblock %}

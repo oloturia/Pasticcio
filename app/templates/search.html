@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if q %}{{ q }} — {% endif %}Search — Pasticcio
+{% endblock %}
+
+{% block content %}
+<div class="page-wide">
+
+    {# ── Search filters ── #}
+    <form method="get" action="/search" id="search-form" style="margin-bottom:1.5rem;">
+
+        {# Full-text query — pre-filled from navbar search or direct URL #}
+        <div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
+            <input
+                type="search"
+                name="q"
+                value="{{ q or '' }}"
+                placeholder="Search recipes…"
+                style="flex:1;padding:0.55rem 0.75rem;border:1px solid var(--border);
+                       border-radius:var(--radius);font-size:1rem;background:#fff;
+                       outline:none;transition:border-color 0.15s;"
+                onfocus="this.style.borderColor='#b5541a'"
+                onblur="this.style.borderColor='#e5e5e0'"
+                autofocus
+            >
+            <button type="submit"
+                style="padding:0.55rem 1.25rem;background:var(--accent);color:#fff;
+                       border:none;border-radius:var(--radius);font-size:1rem;
+                       font-weight:600;cursor:pointer;">
+                Search
+            </button>
+        </div>
+
+        {# Filter row #}
+        <div style="display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-start;
+                    padding:1rem;background:#fff;border:1px solid var(--border);
+                    border-radius:var(--radius);">
+
+            {# Dietary tags #}
+            <div style="flex:1;min-width:200px;">
+                <p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;
+                           letter-spacing:0.06em;color:var(--text-faint);margin-bottom:0.5rem;">
+                    Dietary
+                </p>
+                <div class="tag-grid">
+                    {% set dietary_options = [
+                        ('vegan',        'Vegan'),
+                        ('vegetarian',   'Vegetarian'),
+                        ('gluten_free',  'Gluten-free'),
+                        ('lactose_free', 'Lactose-free'),
+                        ('nut_free',     'Nut-free'),
+                    ] %}
+                    {% for value, label in dietary_options %}
+                    <label>
+                        <input type="checkbox" name="tags" value="{{ value }}"
+                               {% if value in selected_tags %}checked{% endif %}>
+                        {{ label }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            {# Language #}
+            <div style="min-width:140px;">
+                <p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;
+                           letter-spacing:0.06em;color:var(--text-faint);margin-bottom:0.5rem;">
+                    Language
+                </p>
+                <select name="language"
+                    style="width:100%;padding:0.4rem 0.6rem;border:1px solid var(--border);
+                           border-radius:var(--radius);font-size:0.9rem;background:#fff;
+                           outline:none;">
+                    <option value="">Any</option>
+                    <option value="en" {% if language == 'en' %}selected{% endif %}>English</option>
+                    <option value="it" {% if language == 'it' %}selected{% endif %}>Italiano</option>
+                    <option value="fr" {% if language == 'fr' %}selected{% endif %}>Français</option>
+                    <option value="de" {% if language == 'de' %}selected{% endif %}>Deutsch</option>
+                    <option value="es" {% if language == 'es' %}selected{% endif %}>Español</option>
+                    <option value="pt" {% if language == 'pt' %}selected{% endif %}>Português</option>
+                </select>
+            </div>
+
+            {# Include ingredients #}
+            <div style="min-width:180px;">
+                <p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;
+                           letter-spacing:0.06em;color:var(--text-faint);margin-bottom:0.5rem;">
+                    Includes ingredient
+                </p>
+                <input type="text" name="ingredients"
+                       value="{{ ingredients or '' }}"
+                       placeholder="e.g. tomato, garlic"
+                       style="width:100%;padding:0.4rem 0.6rem;border:1px solid var(--border);
+                              border-radius:var(--radius);font-size:0.9rem;background:#fff;
+                              outline:none;transition:border-color 0.15s;"
+                       onfocus="this.style.borderColor='#b5541a'"
+                       onblur="this.style.borderColor='#e5e5e0'">
+                <small style="color:var(--text-faint);font-size:0.75rem;">Comma-separated</small>
+            </div>
+
+            {# Exclude ingredients #}
+            <div style="min-width:180px;">
+                <p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;
+                           letter-spacing:0.06em;color:var(--text-faint);margin-bottom:0.5rem;">
+                    Excludes ingredient
+                </p>
+                <input type="text" name="exclude_ingredients"
+                       value="{{ exclude_ingredients or '' }}"
+                       placeholder="e.g. nuts, dairy"
+                       style="width:100%;padding:0.4rem 0.6rem;border:1px solid var(--border);
+                              border-radius:var(--radius);font-size:0.9rem;background:#fff;
+                              outline:none;transition:border-color 0.15s;"
+                       onfocus="this.style.borderColor='#b5541a'"
+                       onblur="this.style.borderColor='#e5e5e0'">
+                <small style="color:var(--text-faint);font-size:0.75rem;">Comma-separated</small>
+            </div>
+
+            {# Clear filters link #}
+            {% if q or selected_tags or language or ingredients or exclude_ingredients %}
+            <div style="display:flex;align-items:flex-end;padding-bottom:0.1rem;">
+                <a href="/search" style="font-size:0.85rem;color:var(--text-faint);">
+                    Clear filters
+                </a>
+            </div>
+            {% endif %}
+
+        </div>
+
+    </form>
+
+    {# ── Results ── #}
+    {% if query_made %}
+
+        {# Result count #}
+        <p class="section-heading">
+            {% if recipes %}
+                {{ recipes | length }} result{% if recipes | length != 1 %}s{% endif %}
+                {% if q %}for "{{ q }}"{% endif %}
+            {% else %}
+                No results{% if q %} for "{{ q }}"{% endif %}
+            {% endif %}
+        </p>
+
+        {% if recipes %}
+        <div class="recipe-grid">
+            {% for recipe in recipes %}
+            <article class="recipe-card">
+
+                {% if recipe.cover_url %}
+                <img class="recipe-card-cover"
+                     src="{{ recipe.cover_url }}"
+                     alt="{{ recipe.cover_alt or recipe.title }}"
+                     loading="lazy">
+                {% else %}
+                <div class="recipe-card-cover-placeholder" aria-hidden="true">🍽</div>
+                {% endif %}
+
+                <div class="recipe-card-body">
+                    <h2 class="recipe-card-title">
+                        <a href="/api/v1/recipes/{{ recipe.id }}">{{ recipe.title }}</a>
+                    </h2>
+                    <p class="recipe-card-author">
+                        by <a href="/users/{{ recipe.author_username }}">
+                            {{ recipe.author_display_name or recipe.author_username }}
+                        </a>
+                    </p>
+                    {% if recipe.dietary_tags %}
+                    <div class="recipe-card-tags">
+                        {% for tag in recipe.dietary_tags %}
+                        <span class="tag">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <div class="recipe-card-meta">
+                        {% if recipe.prep_time_seconds %}
+                        <span>⏱ {{ (recipe.prep_time_seconds // 60) }} min prep</span>
+                        {% endif %}
+                        {% if recipe.cook_time_seconds %}
+                        <span>🔥 {{ (recipe.cook_time_seconds // 60) }} min cook</span>
+                        {% endif %}
+                        {% if recipe.servings %}
+                        <span>🍽 {{ recipe.servings }} servings</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+            </article>
+            {% endfor %}
+        </div>
+
+        {# Pagination #}
+        {% if page > 1 or has_next %}
+        <nav class="pagination" aria-label="Pagination">
+            {% if page > 1 %}
+            <a href="{{ page_url(page - 1) }}">← Previous</a>
+            {% endif %}
+            <span class="current">{{ page }}</span>
+            {% if has_next %}
+            <a href="{{ page_url(page + 1) }}">Next →</a>
+            {% endif %}
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">🔍</div>
+            <p>No recipes found.</p>
+            <p style="margin-top:0.5rem;font-size:0.85rem;color:var(--text-faint);">
+                Try different keywords or remove some filters.
+            </p>
+        </div>
+        {% endif %}
+
+    {% else %}
+    {# No search performed yet — show a hint #}
+    <div class="empty-state">
+        <div class="empty-state-icon">🍝</div>
+        <p>Enter a keyword or select a filter to search recipes.</p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
