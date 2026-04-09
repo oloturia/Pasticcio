@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Following feed — Pasticcio{% endblock %}
+
+{% block content %}
+<div class="page-wide">
+
+    <h1 style="margin-bottom:0.25rem;">Following</h1>
+    <p class="meta">Recipes from people you follow.</p>
+
+    {% if not following_count %}
+    <div class="empty-state" style="margin-top:2rem;">
+        <div class="empty-state-icon">👥</div>
+        <p>You are not following anyone yet.</p>
+        <p style="font-size:0.9rem;margin-top:0.5rem;">
+            Visit a user's profile and click <strong>Follow</strong> to see their recipes here.
+        </p>
+    </div>
+
+    {% elif not recipes %}
+    <div class="empty-state" style="margin-top:2rem;">
+        <div class="empty-state-icon">🍽</div>
+        <p>The people you follow have not published any recipes yet.</p>
+    </div>
+
+    {% else %}
+    <div class="recipe-grid" style="margin-top:1.5rem;">
+        {% for recipe in recipes %}
+        <a href="/api/v1/recipes/{{ recipe.id }}" class="recipe-card">
+            {% if recipe.cover_url %}
+            <div class="recipe-card-img"
+                 style="background-image:url('{{ recipe.cover_url }}')"></div>
+            {% else %}
+            <div class="recipe-card-img recipe-card-img--empty">🍝</div>
+            {% endif %}
+
+            <div class="recipe-card-body">
+                <h3 class="recipe-card-title">{{ recipe.title }}</h3>
+                {% if recipe.description %}
+                <p class="recipe-card-desc">{{ recipe.description[:100] }}{% if recipe.description|length > 100 %}…{% endif %}</p>
+                {% endif %}
+                <p class="recipe-card-meta">
+                    <a href="/users/{{ recipe.author_username }}"
+                       onclick="event.stopPropagation();"
+                       style="color:var(--text-soft);text-decoration:none;">
+                        {{ recipe.author_display }}
+                    </a>
+                    {% if recipe.published_at %}
+                    · {{ recipe.published_at }}
+                    {% endif %}
+                </p>
+                {% if recipe.dietary_tags %}
+                <div class="recipe-card-tags">
+                    {% for tag in recipe.dietary_tags[:3] %}
+                    <span class="tag">{{ tag }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+
+    {# Pagination #}
+    <div style="display:flex;justify-content:center;gap:1rem;margin-top:2rem;">
+        {% if page > 1 %}
+        <a href="/feed?page={{ page - 1 }}"
+           style="padding:0.5rem 1.25rem;border:1px solid var(--border);
+                  border-radius:var(--radius);text-decoration:none;color:var(--text-soft);">
+            ← Newer
+        </a>
+        {% endif %}
+        {% if has_more %}
+        <a href="/feed?page={{ page + 1 }}"
+           style="padding:0.5rem 1.25rem;border:1px solid var(--border);
+                  border-radius:var(--radius);text-decoration:none;color:var(--text-soft);">
+            Older →
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

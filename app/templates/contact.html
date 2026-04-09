@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Contact — {{ instance_name }}{% endblock %}
+
+{% block content %}
+<div class="page-narrow">
+
+    <h1 style="margin-bottom:0.25rem;">Contact</h1>
+    <p class="meta">Get in touch with the {{ instance_name }} team</p>
+
+    <section style="margin-top:2rem;">
+
+        {% if instance_contact %}
+        <h2>Instance administrator</h2>
+        <p style="margin-top:0.5rem;line-height:1.7;">
+            For questions about this instance, account issues, content reports,
+            or anything else, contact the administrator at:
+        </p>
+        <p style="margin-top:0.75rem;">
+            <a href="mailto:{{ instance_contact }}"
+               style="font-size:1.05rem;font-weight:600;">
+                {{ instance_contact }}
+            </a>
+        </p>
+        {% else %}
+        <p style="line-height:1.7;color:var(--text-soft);">
+            No contact address has been configured for this instance.
+        </p>
+        {% endif %}
+
+    </section>
+
+    <section style="margin-top:2.5rem;">
+        <h2>Report a problem</h2>
+        <p style="margin-top:0.5rem;line-height:1.7;">
+            Found a bug or a security issue? Please report it:
+        </p>
+        <ul style="margin-top:0.5rem;line-height:1.9;padding-left:1.25rem;">
+            <li>
+                <strong>Bug reports:</strong>
+                <a href="https://github.com/oloturia/Pasticcio/issues"
+                   target="_blank" rel="noopener">
+                    GitHub Issues
+                </a>
+            </li>
+            <li>
+                <strong>Security vulnerabilities:</strong>
+                please email the administrator directly rather than opening a public issue.
+            </li>
+            <li>
+                <strong>Content issues</strong> (spam, abuse, inappropriate content):
+                {% if instance_contact %}
+                contact <a href="mailto:{{ instance_contact }}">{{ instance_contact }}</a>.
+                {% else %}
+                contact the instance administrator.
+                {% endif %}
+            </li>
+        </ul>
+    </section>
+
+    <section style="margin-top:2.5rem;">
+        <h2>Open source</h2>
+        <p style="margin-top:0.5rem;line-height:1.7;">
+            Pasticcio is free and open-source software. Contributions are welcome.
+        </p>
+        <p style="margin-top:0.5rem;">
+            <a href="https://github.com/oloturia/Pasticcio" target="_blank" rel="noopener">
+                GitHub — oloturia/Pasticcio
+            </a>
+        </p>
+    </section>
+
+</div>
+{% endblock %}

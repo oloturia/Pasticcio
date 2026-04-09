@@ -6,13 +6,69 @@
 <div class="page-narrow">
 
     <header class="profile-header">
-        <h1>{{ user.display_name or user.username }}</h1>
-        <p class="profile-ap-handle">
-            <a href="{{ user.ap_id }}">@{{ user.username }}@{{ instance_domain }}</a>
-        </p>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;
+                    gap:1rem;flex-wrap:wrap;">
+            <div>
+                <h1 style="margin-bottom:0.1rem;">{{ user.display_name or user.username }}</h1>
+                <p class="profile-ap-handle">
+                    <a href="{{ user.ap_id }}">@{{ user.username }}@{{ instance_domain }}</a>
+                </p>
+            </div>
+
+            {#
+                follow_status: 'following' | 'pending' | 'none'
+                Falls back to 'none' safely if activitypub.py not yet updated.
+            #}
+            {% if current_user is defined and current_user
+               and current_user.username != user.username %}
+
+                {% set status = follow_status if follow_status is defined else 'none' %}
+
+                <div style="flex-shrink:0;margin-top:0.25rem;">
+                    {% if status == 'following' %}
+                    <form method="post" action="/users/{{ user.username }}/unfollow">
+                        <button type="submit" class="btn-following"
+                                onmouseover="this.textContent='Unfollow';
+                                             this.style.borderColor='#c0392b';
+                                             this.style.color='#c0392b'"
+                                onmouseout="this.textContent='✓ Following';
+                                            this.style.borderColor='var(--border)';
+                                            this.style.color='var(--text-soft)'">
+                            ✓ Following
+                        </button>
+                    </form>
+
+                    {% elif status == 'pending' %}
+                    <button disabled class="btn-pending">Requested…</button>
+
+                    {% else %}
+                    <form method="post" action="/users/{{ user.username }}/follow">
+                        <button type="submit" class="btn-follow">+ Follow</button>
+                    </form>
+                    {% endif %}
+                </div>
+
+            {% elif not (current_user is defined and current_user) %}
+            <a href="/login" class="btn-follow"
+               style="display:inline-block;text-decoration:none;margin-top:0.25rem;">
+                Log in to follow
+            </a>
+            {% endif %}
+        </div>
+
         {% if user.bio %}
-        <p class="bio">{{ user.bio }}</p>
+        <p class="bio" style="margin-top:0.75rem;">{{ user.bio }}</p>
         {% endif %}
+
+        <div style="display:flex;gap:1.5rem;margin-top:0.75rem;
+                    font-size:0.875rem;color:var(--text-soft);">
+            {% set fc = follower_count if follower_count is defined else 0 %}
+            {% set rc = recipe_count if recipe_count is defined else recipes|length %}
+            <span><strong style="color:var(--text);">{{ fc }}</strong>
+                  follower{% if fc != 1 %}s{% endif %}</span>
+            <span><strong style="color:var(--text);">{{ rc }}</strong>
+                  recipe{% if rc != 1 %}s{% endif %}</span>
+        </div>
     </header>
 
     <h2>Recent recipes</h2>
@@ -21,7 +77,9 @@
     <ul class="recipe-list">
         {% for recipe in recipes %}
         <li>
-            <a href="/api/v1/recipes/{{ recipe.id }}">{{ recipe.title or recipe.slug }}</a>
+            <a href="/api/v1/recipes/{{ recipe.id }}">
+                {{ recipe.title or recipe.slug }}
+            </a>
             {% if recipe.published_at %}
             <span class="date">{{ recipe.published_at[:10] }}</span>
             {% endif %}
@@ -35,9 +93,48 @@
     </div>
     {% endif %}
 
-    <p class="ap-link">
+    <p class="ap-link" style="margin-top:1.5rem;">
         <a href="{{ user.ap_id }}">ActivityPub actor profile</a>
     </p>
 
 </div>
+
+<style>
+.btn-follow {
+    padding: 0.45rem 1rem;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+}
+.btn-follow:hover { opacity: 0.88; }
+
+.btn-following {
+    padding: 0.45rem 1rem;
+    background: #fff;
+    color: var(--text-soft);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.btn-pending {
+    padding: 0.45rem 1rem;
+    background: var(--muted, #f5f5f0);
+    color: var(--text-faint);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: not-allowed;
+    font-family: inherit;
+}
+</style>
 {% endblock %}

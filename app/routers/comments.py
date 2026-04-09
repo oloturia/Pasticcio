@@ -1,11 +1,6 @@
 # ============================================================
 # app/routers/comments.py — CookedThis / comments endpoints
 # ============================================================
-#
-# Endpoints:
-#   GET  /api/v1/recipes/{id}/comments        — list published comments
-#   POST /api/v1/recipes/{id}/comments        — submit a local comment
-#   PUT  /api/v1/recipes/{id}/comments/{cid}  — approve/reject (author only)
 
 import uuid
 from datetime import datetime
@@ -19,9 +14,11 @@ from sqlalchemy.orm import selectinload
 from app.config import settings
 from app.database import get_db
 from app.models.cooked_this import CookedThis, CookedThisStatus
-from app.models.recipe import Recipe, RecipeStatus
+from app.models.notification import NotificationType
+from app.models.recipe import Recipe, RecipeStatus, RecipeTranslation  # ← aggiunto RecipeTranslation
 from app.models.user import User
 from app.routers.auth import get_current_user
+from app.routers.dashboard import create_notification
 from app.tasks.delivery import deliver_comment_to_followers
 
 import logging
@@ -59,12 +56,11 @@ class CommentOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# Allow self-reference in Pydantic (for nested replies)
 CommentOut.model_rebuild()
 
 
 # ============================================================
-# Helper
+# Helpers
 # ============================================================
 
 def _build_comment_ap_id(username: str, comment_id: uuid.UUID) -> str:
@@ -72,7 +68,7 @@ def _build_comment_ap_id(username: str, comment_id: uuid.UUID) -> str:
 
 
 def _load_options():
-    """Eager-load replies up to 3 levels deep to avoid lazy-load errors in async."""
+    """Eager-load replies up to 3 levels deep."""
     return selectinload(CookedThis.replies).selectinload(
         CookedThis.replies
     ).selectinload(CookedThis.replies)
@@ -92,10 +88,7 @@ async def list_comments(
     per_page: int = Query(default=20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    List published top-level comments for a recipe, with nested replies.
-    Pending and rejected comments are never shown here.
-    """
+    """List published top-level comments for a recipe, with nested replies."""
     result = await db.execute(
         select(Recipe).where(Recipe.id == recipe_id)
     )
@@ -108,7 +101,7 @@ async def list_comments(
         .where(
             CookedThis.recipe_id == recipe_id,
             CookedThis.status == CookedThisStatus.PUBLISHED,
-            CookedThis.parent_id.is_(None),  # top-level only
+            CookedThis.parent_id.is_(None),
         )
         .options(_load_options())
         .order_by(CookedThis.created_at.asc())
@@ -128,18 +121,16 @@ async def create_comment(
     data: CommentIn,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-):
-    """
-    Submit a local CookedThis comment. Requires authentication.
-    Local comments are always published immediately (no moderation).
-    """
+):  
+    logger.warning("CREATE_COMMENT called: recipe_id=%s user=%s", recipe_id, current_user.username)
+    """Submit a local comment. Requires authentication."""
     result = await db.execute(
         select(Recipe).where(Recipe.id == recipe_id)
     )
     recipe = result.scalar_one_or_none()
     if not recipe or recipe.status == RecipeStatus.DELETED:
         raise HTTPException(status_code=404, detail="Recipe not found")
-
+    
     # Validate parent if provided
     parent = None
     if data.parent_id:
@@ -172,14 +163,39 @@ async def create_comment(
     )
     db.add(comment)
     await db.flush()
-    # Deliver the comment to all followers of the recipe author
+
+    # --- Notify recipe author (skip self-comments) ---
+
+    if recipe.author_id != current_user.id:
+        # Get recipe title for the notification summary
+        title_result = await db.execute(
+            select(RecipeTranslation)
+            .where(
+                RecipeTranslation.recipe_id == recipe_id,
+                RecipeTranslation.language == recipe.original_language,
+            )
+            .limit(1)
+        )
+        title_trans = title_result.scalar_one_or_none()
+        recipe_title = title_trans.title if title_trans else "your recipe"
+
+        await create_notification(
+            db=db,
+            recipient_id=recipe.author_id,
+            notification_type=NotificationType.NEW_COMMENT,
+            actor_ap_id=current_user.ap_id,
+            actor_display_name=current_user.display_name or current_user.username,
+            object_id=str(recipe_id),
+            summary=f'commented on "{recipe_title}"',
+        )        
+
+    # --- Deliver to followers via Celery ---
     try:
         deliver_comment_to_followers.delay(str(comment_id))
     except Exception:
         logger.warning("Could not enqueue comment delivery for %s", comment_id)
 
-    # Reload with replies eager-loaded to avoid async lazy-load error
-    # Reload with replies eager-loaded to avoid async lazy-load error
+    # Reload with replies eager-loaded
     result = await db.execute(
         select(CookedThis)
         .where(CookedThis.id == comment_id)
@@ -199,10 +215,7 @@ async def moderate_comment(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    Approve or reject a comment.
-    Only the recipe author (or an admin) can moderate comments.
-    """
+    """Approve or reject a comment. Only the recipe author or admin can moderate."""
     if data.status not in ("published", "rejected"):
         raise HTTPException(status_code=400, detail="Status must be published or rejected")
 
@@ -218,14 +231,12 @@ async def moderate_comment(
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
 
-    # Only the recipe author or an admin can moderate
     if comment.recipe.author_id != current_user.id and not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     comment.status = CookedThisStatus(data.status)
     await db.flush()
 
-    # Reload to get fresh data with replies
     result = await db.execute(
         select(CookedThis)
         .where(CookedThis.id == comment_id)

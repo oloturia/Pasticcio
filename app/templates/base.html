@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="/static/style.css">
     {% block extra_head %}{% endblock %}
 </head>
+
 <body>
 
     <header class="site-header">
@@ -36,6 +37,9 @@
                     </svg>
                 </button>
             </form>
+            <a href="/search" class="nav-link" style="font-size:0.8rem;white-space:nowrap;">
+                Advanced search
+            </a>
 
             {# Auth nav #}
             <nav class="nav-auth">
@@ -43,6 +47,9 @@
                     <a href="/recipes/new" class="nav-link">+ New recipe</a>
                     <a href="/users/{{ current_user.username }}" class="nav-username">
                         {{ current_user.display_name or current_user.username }}
+                    </a>
+                    <a href="/notifications" class="nav-link" id="notif-link">
+                        Notifications <span id="notif-badge" style="display:none;"></span>
                     </a>
                     <form method="post" action="/logout" style="display:inline;">
                         <button type="submit" class="nav-link-btn">Log out</button>
@@ -62,8 +69,39 @@
 
     <footer class="site-footer">
         Pasticcio &mdash; federated, open-source recipe network &mdash;
+        <a href="/about">About</a> &mdash;
+        <a href="/contact">Contact</a> &mdash;
+        <a href="/terms">Terms &amp; Privacy</a> &mdash;
         <a href="/.well-known/nodeinfo">NodeInfo</a>
     </footer>
+
+<script>
+// Fetch unread notification count and update the navbar badge.
+// This runs once after page load so every HTML route gets the badge
+// for free, without each route needing to query the database.
+(async function () {
+    const badge = document.getElementById('notif-badge');
+    if (!badge) return;  // user not logged in, element not present
+
+    try {
+        const resp = await fetch('/api/v1/notifications/unread-count', {
+            credentials: 'same-origin'  // send the session cookie
+        });
+        if (!resp.ok) return;
+        const data = await resp.json();
+
+        if (data.count > 0) {
+            // Bell alone if 1, bell + number if more
+            badge.textContent = data.count > 1
+                ? '🔔 ' + (data.count > 99 ? '99+' : data.count)
+                : '🔔';
+            badge.style.display = 'inline';
+        }
+    } catch (e) {
+        // Network error or not logged in — fail silently
+    }
+})();
+</script>
 
 </body>
 </html>

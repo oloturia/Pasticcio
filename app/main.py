@@ -22,6 +22,11 @@ from app.routers import home
 from app.routers import frontend_auth
 from app.routers import recipe_form
 from app.routers import search_page
+from app.routers import comments_form
+from app.routers import recipe_edit
+from app.routers import static_pages
+from app.routers import follow
+from app.routers import dashboard
 from fastapi.staticfiles import StaticFiles
 import os
 
@@ -77,6 +82,11 @@ app.include_router(moderation.router)
 app.include_router(frontend_auth.router)
 app.include_router(recipe_form.router)
 app.include_router(search_page.router)
+app.include_router(comments_form.router)
+app.include_router(recipe_edit.router)
+app.include_router(static_pages.router)
+app.include_router(follow.router)
+app.include_router(dashboard.router)
 
 # --- Root ---
 

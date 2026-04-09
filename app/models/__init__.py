@@ -45,3 +45,6 @@ from app.models.reaction import Reaction, ReactionType
 from app.models.known_instance import KnownInstance
 from app.models.moderation import Bookmark, BlockType, InstanceRule, RuleType, UserBlock
 from app.models.recipe import RecipeStepPhoto
+from app.models.cooked_this import CookedThisPhoto
+from app.models.follow_request import FollowRequest, FollowRequestStatus
+from app.models.notification import Notification, NotificationType

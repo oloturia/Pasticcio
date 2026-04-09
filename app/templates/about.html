@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}About — {{ instance_name }}{% endblock %}
+
+{% block content %}
+<div class="page-narrow">
+
+    <h1 style="margin-bottom:0.25rem;">About Pasticcio</h1>
+    <p class="meta">A federated, open-source recipe social network</p>
+
+    <section style="margin-top:2rem;">
+        <h2>What is Pasticcio?</h2>
+        <p style="margin-top:0.5rem;line-height:1.7;">
+            Pasticcio is a recipe sharing platform that speaks
+            <a href="https://activitypub.rocks/" target="_blank" rel="noopener">ActivityPub</a>
+            — the same protocol used by Mastodon, Pixelfed, and the rest of the Fediverse.
+            A recipe published here can be followed, liked, and boosted from Mastodon or any
+            other compatible platform, with no central server in control.
+        </p>
+    </section>
+
+    <section style="margin-top:2rem;">
+        <h2>Philosophy</h2>
+        <ul style="margin-top:0.5rem;line-height:1.9;padding-left:1.25rem;">
+            <li>
+                <strong>Federation first.</strong>
+                Every Pasticcio instance is a node in the broader Fediverse.
+                Recipes, comments, and user profiles are all ActivityPub objects.
+            </li>
+            <li>
+                <strong>Veg-friendly, not veg-exclusive.</strong>
+                Dietary filters help vegan and vegetarian users find what they need.
+                All recipes are welcome — filters work toward plant-based diets,
+                never as exclusions.
+            </li>
+            <li>
+                <strong>Humility over authority.</strong>
+                Nutritional values and dietary labels are always author-provided metadata,
+                never presented as objective facts.
+            </li>
+            <li>
+                <strong>Lightweight by default.</strong>
+                A single instance runs comfortably on a Raspberry Pi for small communities.
+            </li>
+            <li>
+                <strong>Open, forever.</strong>
+                No ads, no algorithmic feeds, no dark patterns. The code is open source
+                under the EUPL-1.2 licence.
+            </li>
+        </ul>
+    </section>
+
+    <section style="margin-top:2rem;">
+        <h2>This instance</h2>
+        <p style="margin-top:0.5rem;line-height:1.7;">
+            <strong>{{ instance_name }}</strong>
+            {% if instance_description %}— {{ instance_description }}{% endif %}
+        </p>
+        {% if instance_contact %}
+        <p style="margin-top:0.5rem;line-height:1.7;">
+            Administrator contact:
+            <a href="mailto:{{ instance_contact }}">{{ instance_contact }}</a>
+        </p>
+        {% endif %}
+    </section>
+
+    <section style="margin-top:2rem;">
+        <h2>Technology</h2>
+        <p style="margin-top:0.5rem;line-height:1.7;">
+            Built with Python 3.12, FastAPI, PostgreSQL, SQLAlchemy, Celery, and Redis.
+            Federated via ActivityPub with HTTP Signatures (RSA-SHA256).
+        </p>
+        <p style="margin-top:0.5rem;">
+            <a href="https://github.com/oloturia/Pasticcio" target="_blank" rel="noopener">
+                Source code on GitHub
+            </a>
+            &mdash;
+            Licensed under
+            <a href="https://eupl.eu/" target="_blank" rel="noopener">EUPL-1.2</a>
+        </p>
+    </section>
+
+    <section style="margin-top:2rem;">
+        <h2>Federation</h2>
+        <p style="margin-top:0.5rem;line-height:1.7;">
+            You can find any user on this instance from Mastodon by searching for
+            <code style="background:var(--muted);padding:1px 5px;border-radius:3px;">
+                @username@{{ instance_domain }}
+            </code>.
+        </p>
+        <p style="margin-top:0.5rem;">
+            <a href="/.well-known/nodeinfo">NodeInfo</a> &mdash;
+            <a href="/.well-known/webfinger?resource=acct:">WebFinger</a>
+        </p>
+    </section>
+
+</div>
+{% endblock %}

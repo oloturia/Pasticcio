@@ -32,8 +32,11 @@ from app.models.recipe import Recipe, RecipeStatus
 from app.models.user import User
 from app.ap.ratelimit import check_rate_limit
 from app.templates_env import templates
+from app.routers.dashboard import create_notification
+from app.models.notification import NotificationType
 from fastapi import Request as FastAPIRequest
 from app.dependencies import get_current_user_optional
+from app.routers.users import get_follow_status, get_follower_count, get_recipe_count
 
 logger = logging.getLogger(__name__)
 
@@ -143,6 +146,10 @@ async def get_actor(
                 "published_at": recipe.published_at.isoformat() if recipe.published_at else None,
             })
 
+        follow_status = await get_follow_status(current_user, user, db)
+        follower_count = await get_follower_count(user, db)
+        recipe_count = await get_recipe_count(user, db)
+
         return templates.TemplateResponse(
             "user_profile.html",
             {
@@ -151,6 +158,9 @@ async def get_actor(
                 "current_user": current_user,
                 "recipes": recipe_list,
                 "instance_domain": settings.instance_domain,
+                "follow_status": follow_status,
+                "follower_count": follower_count,
+                "recipe_count": recipe_count,
             },
         )
 
@@ -459,6 +469,21 @@ async def inbox(
         )
         db.add(comment)
         await db.flush()
+        # Notify recipe author about federated comment
+        recipe_author_result = await db.execute(
+            select(User).where(User.id == recipe.author_id)
+        )
+        recipe_author = recipe_author_result.scalar_one_or_none()
+        if recipe_author and not recipe_author.is_remote:
+            await create_notification(
+                db=db,
+                recipient_id=recipe_author.id,
+                notification_type=NotificationType.NEW_COMMENT,
+                actor_ap_id=actor_url,
+                actor_display_name=remote_actor.get("name") or remote_actor.get("preferredUsername"),
+                object_id=str(recipe_id),
+                summary="commented on your recipe",
+            )
         return Response(status_code=202)
 
     # ----------------------------------------------------------

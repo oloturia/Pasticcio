@@ -2,8 +2,8 @@
 
 > A federated, open-source recipe social network built on ActivityPub.
 
-**Version:** 0.1.0-draft  
-**Status:** Pre-development / Design phase  
+**Version:** 0.3.0  
+**Status:** Active development  
 **License:** [EUPL-1.2](https://eupl.eu/) *(permissive, non-commercial-friendly, multilingual)*
 
 ---
@@ -543,33 +543,57 @@ S3_ENDPOINT=...
 
 ## 13. Roadmap
 
-### v0.1 — Foundation
-- [ ] Project scaffolding (FastAPI, PostgreSQL, Alembic, Docker Compose)
-- [ ] User model + auth (JWT)
-- [ ] Recipe model + CRUD API
-- [ ] Basic dietary tagging
-- [ ] WebFinger + Actor AP endpoints
+### v0.1 — Foundation ✅ complete
+- [x] Project scaffolding (FastAPI, PostgreSQL, Alembic, Podman Compose)
+- [x] User model + auth (JWT, bcrypt, RSA keypair generation)
+- [x] Recipe model + CRUD API (draft/published/deleted, dietary tags)
+- [x] Basic dietary tagging (inclusive-only filters)
+- [x] WebFinger + Actor AP endpoints
 
-### v0.2 — Federation
-- [ ] AP inbox/outbox
-- [ ] Follow/Unfollow
-- [ ] Federated recipe delivery
-- [ ] Incoming comments from Mastodon
+### v0.2 — Federation ✅ complete
+- [x] AP inbox/outbox (shared inbox, pagination)
+- [x] Follow/Unfollow with Accept delivery
+- [x] Federated recipe delivery (Create/Update/Delete Article via Celery)
+- [x] Incoming comments from Mastodon (Create/Update/Delete Note)
+- [x] Like and Announce reactions
+- [x] HTTP Signatures (RSA-SHA256, sign + verify)
+- [x] Rate limiting on AP inbox (per IP and per domain, Redis-backed)
+- [x] Federation policy (blacklist/whitelist mode)
+- [x] Known instances tracking + NodeInfo detection
+- [x] Remote user and recipe lookup (WebFinger, AP fetch)
+- [x] Recipe fork from remote AP ID
+- [x] Full-text search with ingredient filters (local + federated)
+- [x] Moderation: user blocks, mutes, bookmarks, instance rules, admin ban
 
-### v0.3 — Community features
-- [ ] Recipe translations
-- [ ] CookedThis entries
-- [ ] Photo uploads
+### v0.3 — Community features + Frontend ✅ complete
+- [x] CookedThis entries (local + federated comments, threaded replies)
+- [x] CookedThis photos (up to 4 per comment)
+- [x] Photo uploads for recipes (cover photo + per-step photos)
+- [x] Recipe step photos (dedicated table, migration 0010)
+- [x] HTML frontend: homepage with masonry grid
+- [x] HTML frontend: navbar with login/logout, search, "New recipe"
+- [x] HTML frontend: login + register with email confirmation (Redis token, fastapi-mail)
+- [x] HTML frontend: recipe creation form (dynamic ingredients and steps)
+- [x] HTML frontend: recipe detail with inline edit and delete
+- [x] HTML frontend: search page with full filters
+- [x] HTML frontend: CookedThis form with photo upload and threaded replies
+- [x] HTML frontend: user profile page
+- [x] HTML frontend: static pages (About, Contact, Terms & Privacy)
+- [x] Email confirmation flow (2h TTL token in Redis)
+- [x] Session cookie (httponly JWT, secure in production)
+- [x] API rate limiting middleware (per IP and per user)
 
 ### v0.4 — Nutrition (optional module)
 - [ ] FoodItem database + seeding from Open Food Facts
 - [ ] Nutritional summary on recipes
 - [ ] Manual entry support
 
-### v0.5 — Frontend
-- [ ] Public recipe browser
-- [ ] Author dashboard
-- [ ] Mobile-responsive
+### v0.5 — Polish & translations
+- [ ] Recipe translations (community-editable, Wikipedia-style workflow)
+- [ ] Interface localisation (i18n)
+- [ ] Mobile-responsive improvements
+- [ ] Draft recipes dashboard (author view of own unpublished recipes)
+- [ ] Ingredient unit conversion
 
 ### v0.6 — Fediverse bot
 - [ ] Bot account (@bot@instance) with its own AP Actor and inbox
@@ -581,9 +605,8 @@ S3_ENDPOINT=...
 
 ### Future / under evaluation
 - [ ] Remote login (OAuth with Mastodon) — complex, deferred
-- [ ] Full-text multilingual search (PostgreSQL FTS or Meilisearch)
-- [ ] Ingredient unit conversion
 - [ ] Meal planner (stretch goal)
+- [ ] Native mobile app (Fediverse-compatible client)
 
 ---
 

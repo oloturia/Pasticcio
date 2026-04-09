@@ -45,6 +45,9 @@ from app.models.user import User
 from app.tasks.delivery import deliver_to_followers
 from app.templates_env import templates
 
+from app.routers.recipe_utils import save_upload as _save_upload
+from app.routers.recipe_utils import unit_options_html as _unit_options_html
+
 router = APIRouter(tags=["frontend"])
 
 # Allowed image MIME types and their extensions
@@ -73,46 +76,6 @@ _UNIT_LABELS: list[tuple[str, str]] = [
     ("pinch",   "pinch"),
     ("to_taste","to taste"),
 ]
-
-
-def _unit_options_html(selected: str = "") -> str:
-    """Build the <option> HTML string for the unit <select>."""
-    parts = []
-    for value, label in _UNIT_LABELS:
-        sel = ' selected' if value == selected else ''
-        parts.append(f'<option value="{value}"{sel}>{label}</option>')
-    return "".join(parts)
-
-
-# ============================================================
-# File save helper
-# ============================================================
-
-async def _save_upload(file: UploadFile, relative_dir: str) -> str | None:
-    """
-    Read an uploaded file, validate type and size, write to disk.
-    Returns the relative path (from MEDIA_ROOT) on success, None otherwise.
-    """
-    if not file or not file.filename:
-        return None
-    content_type = file.content_type or ""
-    if content_type not in ALLOWED_TYPES:
-        return None
-    content = await file.read()
-    if len(content) > MAX_UPLOAD_BYTES:
-        return None
-
-    ext = ALLOWED_TYPES[content_type]
-    filename = f"{uuid.uuid4()}{ext}"
-    relative_path = f"{relative_dir}/{filename}"
-    absolute_path = Path(settings.media_root) / relative_path
-    absolute_path.parent.mkdir(parents=True, exist_ok=True)
-
-    async with aiofiles.open(absolute_path, "wb") as f:
-        await f.write(content)
-
-    return relative_path
-
 
 # ============================================================
 # GET /recipes/new

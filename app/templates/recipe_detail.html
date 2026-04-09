@@ -2,80 +2,423 @@
 
 {% block title %}{{ translation.title }} — Pasticcio{% endblock %}
 
+{# ── Macro for recursive comment rendering ── #}
+{% macro render_comment(comment, recipe_id, depth=0) %}
+<div style="{% if depth > 0 %}margin-left:1.5rem;border-left:2px solid var(--border);padding-left:1rem;{% endif %}margin-bottom:0.75rem;">
+    <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:0.9rem 1rem;">
+
+        <div style="display:flex;align-items:baseline;gap:0.5rem;margin-bottom:0.5rem;flex-wrap:wrap;">
+            <span style="font-weight:600;font-size:0.9rem;">
+                {% if comment.author %}
+                <a href="/users/{{ comment.author.username }}" style="color:var(--text);">
+                    {{ comment.author.display_name or comment.author.username }}
+                </a>
+                {% else %}
+                <span style="color:var(--text-soft);">{{ comment.actor_ap_id.split('/')[-1] }}</span>
+                {% endif %}
+            </span>
+            {% if comment.is_remote %}
+            <span style="font-size:0.75rem;color:var(--text-faint);">
+                ({{ comment.actor_ap_id | replace('https://', '') | truncate(30, true, '…') }})
+            </span>
+            {% endif %}
+            <span style="font-size:0.8rem;color:var(--text-faint);margin-left:auto;">
+                {{ comment.created_at.strftime('%Y-%m-%d') }}
+            </span>
+        </div>
+
+        <p style="font-size:0.95rem;line-height:1.5;margin:0 0 0.75rem 0;">{{ comment.content }}</p>
+
+        {% if comment.photos %}
+        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;">
+            {% for photo in comment.photos %}
+            <img src="/media/{{ photo.url }}" alt="{{ photo.alt_text or 'Photo' }}"
+                 style="height:120px;width:auto;max-width:100%;border-radius:4px;
+                        object-fit:cover;border:1px solid var(--border);cursor:pointer;"
+                 onclick="openPhoto('/media/{{ photo.url }}')" loading="lazy">
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if current_user and depth < 2 %}
+        <div>
+            <button type="button" onclick="toggleReplyForm('reply-{{ comment.id }}')"
+                    style="background:none;border:none;cursor:pointer;font-size:0.8rem;
+                           color:var(--text-faint);font-family:inherit;padding:0;">↩ Reply</button>
+            <div id="reply-{{ comment.id }}" style="display:none;margin-top:0.75rem;">
+                <form method="post" action="/api/v1/recipes/{{ recipe_id }}/comments/submit"
+                      enctype="multipart/form-data">
+                    <input type="hidden" name="parent_id" value="{{ comment.id }}">
+                    <textarea name="content" rows="2" required placeholder="Reply…"
+                              style="width:100%;padding:0.5rem 0.65rem;border:1px solid var(--border);
+                                     border-radius:var(--radius);font-size:0.88rem;font-family:inherit;
+                                     resize:vertical;outline:none;"
+                              onfocus="this.style.borderColor='#b5541a'"
+                              onblur="this.style.borderColor='#e5e5e0'"></textarea>
+                    <div style="display:flex;justify-content:flex-end;margin-top:0.4rem;gap:0.5rem;">
+                        <button type="button" onclick="toggleReplyForm('reply-{{ comment.id }}')"
+                                style="background:none;border:1px solid var(--border);border-radius:var(--radius);
+                                       padding:0.3rem 0.75rem;font-size:0.85rem;cursor:pointer;
+                                       color:var(--text-soft);font-family:inherit;">Cancel</button>
+                        <button type="submit"
+                                style="padding:0.3rem 0.75rem;background:var(--accent);color:#fff;
+                                       border:none;border-radius:var(--radius);font-size:0.85rem;
+                                       font-weight:600;cursor:pointer;font-family:inherit;">Reply</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+    {% if comment.replies %}
+    <div style="margin-top:0.5rem;">
+        {% for reply in comment.replies %}{{ render_comment(reply, recipe_id, depth + 1) }}{% endfor %}
+    </div>
+    {% endif %}
+
+</div>
+{% endmacro %}
+
+{% block extra_head %}
+<style>
+    .edit-field label { display:block; font-size:0.85rem; font-weight:600; margin-bottom:0.3rem; }
+    .edit-field input[type="text"],
+    .edit-field input[type="number"],
+    .edit-field textarea,
+    .edit-field select {
+        width:100%; padding:0.5rem 0.7rem; border:1px solid var(--border);
+        border-radius:var(--radius); font-size:0.9rem; font-family:inherit;
+        background:#fff; outline:none; transition:border-color 0.15s;
+    }
+    .edit-field input:focus, .edit-field textarea:focus, .edit-field select:focus {
+        border-color: var(--accent);
+    }
+    .edit-field textarea { resize:vertical; }
+    .edit-section { margin-bottom:1.25rem; }
+    .edit-section h3 { font-size:0.75rem; font-weight:700; text-transform:uppercase;
+                        letter-spacing:0.06em; color:var(--text-faint);
+                        margin:0 0 0.75rem; padding-bottom:0.4rem;
+                        border-bottom:1px solid var(--border); }
+    .ing-row { display:grid; grid-template-columns:70px 90px 1fr 110px 28px; gap:0.4rem;
+               align-items:start; margin-bottom:0.4rem; }
+    .step-edit-row { border:1px solid var(--border); border-radius:var(--radius);
+                     padding:0.85rem; margin-bottom:0.6rem; background:var(--bg); }
+    .step-edit-header { display:flex; align-items:center; gap:0.5rem; margin-bottom:0.6rem; }
+    .step-num { background:var(--accent); color:#fff; width:1.5rem; height:1.5rem;
+                border-radius:50%; font-size:0.7rem; font-weight:700;
+                display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .add-row-btn { background:none; border:1px dashed var(--border); border-radius:var(--radius);
+                   color:var(--text-soft); padding:0.4rem 0.8rem; font-size:0.82rem;
+                   cursor:pointer; width:100%; text-align:left; font-family:inherit;
+                   transition:border-color 0.15s,color 0.15s; }
+    .add-row-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .rm-btn { background:none; border:1px solid var(--border); border-radius:4px;
+              color:var(--text-faint); width:28px; height:28px; cursor:pointer;
+              font-size:1rem; line-height:1; flex-shrink:0; transition:border-color 0.15s,color 0.15s; }
+    .rm-btn:hover { border-color:#c0392b; color:#c0392b; }
+    .step-photo-thumb { width:70px; height:52px; object-fit:cover; border-radius:4px;
+                        border:1px solid var(--border); }
+    @media(max-width:540px) {
+        .ing-row { grid-template-columns:1fr 1fr; }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-narrow">
 
     <article>
 
-        {# Cover photo #}
         {% if cover_url %}
-        <img
-            src="{{ cover_url }}"
-            alt="{{ cover_alt or translation.title }}"
-            style="width:100%;border-radius:6px;margin-bottom:1.25rem;object-fit:cover;max-height:360px;"
-        >
+        <img src="{{ cover_url }}" alt="{{ cover_alt or translation.title }}"
+             style="width:100%;border-radius:6px;margin-bottom:1.25rem;object-fit:cover;max-height:360px;">
         {% endif %}
 
         <header class="recipe-detail-header">
             <h1>{{ translation.title }}</h1>
-
             <p class="meta">
                 by <a href="/users/{{ recipe.author.username }}">
                     {{ recipe.author.display_name or recipe.author.username }}
                 </a>
-                {% if recipe.published_at %}
-                &mdash; {{ recipe.published_at.strftime('%Y-%m-%d') }}
-                {% endif %}
-                {% if recipe.difficulty %}
-                &mdash; {{ recipe.difficulty.value }}
+                {% if recipe.published_at %}&mdash; {{ recipe.published_at.strftime('%Y-%m-%d') }}{% endif %}
+                {% if recipe.difficulty %}&mdash; {{ recipe.difficulty.value }}{% endif %}
+                {% if recipe.status.value == 'draft' %}
+                &mdash; <span style="color:var(--accent);font-weight:600;">Draft</span>
                 {% endif %}
             </p>
-
-            {# Dietary tags #}
             {% if recipe.dietary_tags %}
             <div class="recipe-card-tags" style="margin-top:0.5rem;">
-                {% for tag in recipe.dietary_tags %}
-                <span class="tag">{{ tag }}</span>
-                {% endfor %}
+                {% for tag in recipe.dietary_tags %}<span class="tag">{{ tag }}</span>{% endfor %}
             </div>
             {% endif %}
-
-            {# Metabolic disclaimer #}
             {% if recipe.show_metabolic_disclaimer %}
             <p class="disclaimer" style="margin-top:0.75rem;">
                 ⚠️ Metabolic tags are the author's own assessment and are not medical recommendations.
             </p>
             {% endif %}
-
-            {# Description #}
-            {% if translation.description %}
-            <p class="bio">{{ translation.description }}</p>
-            {% endif %}
-
-            {# Timings and servings #}
+            {% if translation.description %}<p class="bio">{{ translation.description }}</p>{% endif %}
             <div class="recipe-detail-timings">
                 {% if recipe.prep_time_seconds %}
-                <span>
-                    <span style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:#999;">Prep</span>
-                    {{ (recipe.prep_time_seconds // 60) }} min
-                </span>
+                <span><span style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:#999;">Prep</span>
+                    {{ (recipe.prep_time_seconds // 60) }} min</span>
                 {% endif %}
                 {% if recipe.cook_time_seconds %}
-                <span>
-                    <span style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:#999;">Cook</span>
-                    {{ (recipe.cook_time_seconds // 60) }} min
-                </span>
+                <span><span style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:#999;">Cook</span>
+                    {{ (recipe.cook_time_seconds // 60) }} min</span>
                 {% endif %}
                 {% if recipe.servings %}
-                <span>
-                    <span style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:#999;">Serves</span>
-                    {{ recipe.servings }}
-                </span>
+                <span><span style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:#999;">Serves</span>
+                    {{ recipe.servings }}</span>
                 {% endif %}
             </div>
         </header>
 
-        {# Ingredients #}
+        {# ── Author action bar ── #}
+        {% if current_user and current_user.id == recipe.author_id %}
+        <div style="display:flex;gap:0.5rem;margin:1.25rem 0;padding:0.75rem 1rem;
+                    background:var(--muted);border-radius:var(--radius);align-items:center;">
+            <span style="font-size:0.8rem;color:var(--text-faint);flex:1;">Your recipe</span>
+            <button type="button" onclick="toggleEditPanel()"
+                    style="padding:0.35rem 0.9rem;background:#fff;border:1px solid var(--border);
+                           border-radius:var(--radius);font-size:0.85rem;cursor:pointer;
+                           font-family:inherit;font-weight:600;"
+                    onmouseover="this.style.borderColor='#b5541a'"
+                    onmouseout="this.style.borderColor='var(--border)'">✏️ Edit</button>
+            <form method="post" action="/api/v1/recipes/{{ recipe.id }}/delete" style="display:inline;">
+                <button type="submit" onclick="return confirmDelete()"
+                        style="padding:0.35rem 0.9rem;background:#fff;border:1px solid #e0b0b0;
+                               border-radius:var(--radius);font-size:0.85rem;cursor:pointer;
+                               font-family:inherit;color:#c0392b;font-weight:600;"
+                        onmouseover="this.style.background='#fff0f0'"
+                        onmouseout="this.style.background='#fff'">🗑 Delete</button>
+            </form>
+        </div>
+
+        {# ── Full inline edit panel ── #}
+        <div id="edit-panel" style="display:none;background:#fff;border:1px solid var(--border);
+                                    border-radius:var(--radius);padding:1.5rem;margin-bottom:1.5rem;">
+            <h2 style="margin-top:0;margin-bottom:1.25rem;font-size:1rem;">Edit recipe</h2>
+
+            {% if edit_error %}
+            <p style="color:#b5541a;background:#fdf3ee;border:1px solid #f5c9b0;
+                      border-radius:6px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.9rem;">
+                {{ edit_error }}
+            </p>
+            {% endif %}
+
+            <form method="post" action="/api/v1/recipes/{{ recipe.id }}/edit"
+                  enctype="multipart/form-data">
+
+                {# Basic info #}
+                <div class="edit-section">
+                    <h3>Basic info</h3>
+                    <div class="edit-field" style="margin-bottom:0.75rem;">
+                        <label>Title *</label>
+                        <input type="text" name="title" required maxlength="256"
+                               value="{{ translation.title }}">
+                    </div>
+                    <div class="edit-field">
+                        <label>Description</label>
+                        <textarea name="description" rows="3">{{ translation.description or '' }}</textarea>
+                    </div>
+                </div>
+
+                {# Timings #}
+                <div class="edit-section">
+                    <h3>Timings &amp; servings</h3>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0.75rem;">
+                        <div class="edit-field">
+                            <label>Prep (min)</label>
+                            <input type="number" name="prep_time" min="0" max="9999"
+                                   value="{{ (recipe.prep_time_seconds // 60) if recipe.prep_time_seconds else '' }}">
+                        </div>
+                        <div class="edit-field">
+                            <label>Cook (min)</label>
+                            <input type="number" name="cook_time" min="0" max="9999"
+                                   value="{{ (recipe.cook_time_seconds // 60) if recipe.cook_time_seconds else '' }}">
+                        </div>
+                        <div class="edit-field">
+                            <label>Servings</label>
+                            <input type="number" name="servings" min="1" max="999"
+                                   value="{{ recipe.servings or '' }}">
+                        </div>
+                        <div class="edit-field">
+                            <label>Difficulty</label>
+                            <select name="difficulty">
+                                <option value="">—</option>
+                                <option value="easy"   {% if recipe.difficulty and recipe.difficulty.value == 'easy'   %}selected{% endif %}>Easy</option>
+                                <option value="medium" {% if recipe.difficulty and recipe.difficulty.value == 'medium' %}selected{% endif %}>Medium</option>
+                                <option value="hard"   {% if recipe.difficulty and recipe.difficulty.value == 'hard'   %}selected{% endif %}>Hard</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                {# Cover photo #}
+                <div class="edit-section">
+                    <h3>Cover photo</h3>
+                    {% if cover_url %}
+                    <img src="{{ cover_url }}" alt="Current cover"
+                         style="height:80px;border-radius:4px;object-fit:cover;margin-bottom:0.5rem;display:block;">
+                    <p style="font-size:0.8rem;color:var(--text-faint);margin-bottom:0.5rem;">
+                        Upload a new photo to replace the current one.
+                    </p>
+                    {% endif %}
+                    <div class="edit-field">
+                        <input type="file" name="cover_photo" accept="image/jpeg,image/png,image/webp,image/gif">
+                    </div>
+                </div>
+
+                {# Dietary tags #}
+                <div class="edit-section">
+                    <h3>Dietary tags</h3>
+                    <div class="tag-grid">
+                        {% set dietary_options = [
+                            ('vegan','Vegan'),('vegetarian','Vegetarian'),('pescatarian','Pescatarian'),
+                            ('gluten_free','Gluten-free'),('nut_free','Nut-free'),
+                            ('soy_free','Soy-free'),('lactose_free','Lactose-free'),
+                            ('contains_eggs','Contains eggs'),('contains_dairy','Contains dairy'),
+                        ] %}
+                        {% for value, label in dietary_options %}
+                        <label>
+                            <input type="checkbox" name="dietary_tags" value="{{ value }}"
+                                   {% if value in recipe.dietary_tags %}checked{% endif %}>
+                            {{ label }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {# Ingredients #}
+                <div class="edit-section">
+                    <h3>Ingredients</h3>
+                    <div style="display:grid;grid-template-columns:70px 90px 1fr 110px 28px;gap:0.4rem;margin-bottom:0.3rem;">
+                        <small style="color:var(--text-faint);">Qty</small>
+                        <small style="color:var(--text-faint);">Unit</small>
+                        <small style="color:var(--text-faint);">Ingredient</small>
+                        <small style="color:var(--text-faint);">Notes</small>
+                        <span></span>
+                    </div>
+                    <div id="edit-ing-list">
+                        {% if ingredients %}
+                        {% for ing in ingredients %}
+                        <div class="ing-row">
+                            <input type="number" name="ing_qty[]" step="any" min="0"
+                                   value="{{ ing.quantity | float | int if ing.quantity and ing.quantity == ing.quantity | int else ing.quantity or '' }}">
+                            <select name="ing_unit[]">{{ unit_options_html | safe }}</select>
+                            <input type="text" name="ing_name[]" required value="{{ ing.name }}">
+                            <input type="text" name="ing_notes[]" value="{{ ing.notes or '' }}">
+                            <button type="button" class="rm-btn" onclick="removeRow(this,'edit-ing-list','ing-row')">×</button>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <div class="ing-row">
+                            <input type="number" name="ing_qty[]" step="any" min="0" placeholder="200">
+                            <select name="ing_unit[]">{{ unit_options_html | safe }}</select>
+                            <input type="text" name="ing_name[]" required placeholder="e.g. flour">
+                            <input type="text" name="ing_notes[]" placeholder="optional">
+                            <button type="button" class="rm-btn" onclick="removeRow(this,'edit-ing-list','ing-row')">×</button>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <button type="button" class="add-row-btn" onclick="addIngredientEdit()">+ Add ingredient</button>
+                </div>
+
+                {# Steps #}
+                <div class="edit-section">
+                    <h3>Steps</h3>
+                    <div id="edit-steps-list">
+                        {% if steps %}
+                        {% for step in steps %}
+                        {% set existing_photo = step_photo_map.get(step.order) %}
+                        <div class="step-edit-row" data-step="{{ step.order }}">
+                            <div class="step-edit-header">
+                                <span class="step-num">{{ step.order }}</span>
+                                <span style="font-size:0.82rem;color:var(--text-soft);flex:1;">Step {{ step.order }}</span>
+                                <button type="button" class="rm-btn" onclick="removeStepEdit(this)">×</button>
+                            </div>
+                            <div class="edit-field" style="margin-bottom:0.6rem;">
+                                <textarea name="step_text[]" rows="2" required>{{ step.text }}</textarea>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:0.75rem;">
+                                {% if existing_photo %}
+                                <img src="{{ existing_photo }}" class="step-photo-thumb"
+                                     id="step-thumb-{{ loop.index0 }}">
+                                <input type="hidden" name="step_keep_photo[]" value="keep"
+                                       id="step-keep-{{ loop.index0 }}">
+                                <label style="font-size:0.8rem;color:var(--text-faint);cursor:pointer;">
+                                    <input type="file" name="step_photo[]"
+                                           accept="image/jpeg,image/png,image/webp"
+                                           style="display:none;"
+                                           onchange="replaceStepPhoto(this, {{ loop.index0 }})">
+                                    Replace photo
+                                </label>
+                                <button type="button" onclick="removeStepPhoto({{ loop.index0 }})"
+                                        style="background:none;border:none;cursor:pointer;font-size:0.8rem;
+                                               color:#c0392b;font-family:inherit;">Remove</button>
+                                {% else %}
+                                <input type="hidden" name="step_keep_photo[]" value="">
+                                <label style="font-size:0.8rem;color:var(--text-faint);cursor:pointer;">
+                                    <input type="file" name="step_photo[]"
+                                           accept="image/jpeg,image/png,image/webp"
+                                           style="display:none;"
+                                           onchange="previewNewStepPhoto(this, {{ loop.index0 }})">
+                                    📷 Add photo
+                                </label>
+                                <img id="step-thumb-{{ loop.index0 }}"
+                                     style="display:none;" class="step-photo-thumb">
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <div class="step-edit-row" data-step="1">
+                            <div class="step-edit-header">
+                                <span class="step-num">1</span>
+                                <span style="font-size:0.82rem;color:var(--text-soft);flex:1;">Step 1</span>
+                                <button type="button" class="rm-btn" onclick="removeStepEdit(this)">×</button>
+                            </div>
+                            <div class="edit-field" style="margin-bottom:0.6rem;">
+                                <textarea name="step_text[]" rows="2" required placeholder="Describe this step…"></textarea>
+                            </div>
+                            <input type="hidden" name="step_keep_photo[]" value="">
+                            <input type="file" name="step_photo[]" accept="image/jpeg,image/png,image/webp"
+                                   style="font-size:0.82rem;">
+                        </div>
+                        {% endif %}
+                    </div>
+                    <button type="button" class="add-row-btn" onclick="addStepEdit()">+ Add step</button>
+                </div>
+
+                {# Action buttons #}
+                <div style="display:flex;gap:0.75rem;justify-content:flex-end;flex-wrap:wrap;margin-top:0.5rem;">
+                    <button type="button" onclick="toggleEditPanel()"
+                            style="padding:0.5rem 1rem;background:#fff;border:1px solid var(--border);
+                                   border-radius:var(--radius);font-size:0.9rem;cursor:pointer;
+                                   font-family:inherit;">Cancel</button>
+                    {% if recipe.status.value == 'draft' %}
+                    <button type="submit" name="publish" value="1"
+                            style="padding:0.5rem 1rem;background:var(--accent);color:#fff;
+                                   border:none;border-radius:var(--radius);font-size:0.9rem;
+                                   font-weight:600;cursor:pointer;font-family:inherit;">
+                        Save &amp; Publish
+                    </button>
+                    {% endif %}
+                    <button type="submit" name="publish" value="0"
+                            style="padding:0.5rem 1rem;background:var(--accent);color:#fff;
+                                   border:none;border-radius:var(--radius);font-size:0.9rem;
+                                   font-weight:600;cursor:pointer;font-family:inherit;">
+                        Save changes
+                    </button>
+                </div>
+
+            </form>
+        </div>
+        {% endif %}
+
+        {# Ingredients view #}
         {% if ingredients %}
         <h2>Ingredients</h2>
         <ul class="recipe-ingredient-list">
@@ -83,23 +426,17 @@
             <li>
                 {% if ing.quantity %}
                     {% set qty = ing.quantity | float %}
-                    {% if qty == qty | int %}
-                        {{ qty | int }}
-                    {% else %}
-                        {{ qty }}
-                    {% endif %}
+                    {% if qty == qty | int %}{{ qty | int }}{% else %}{{ qty }}{% endif %}
                 {% endif %}
-                {% if ing.unit and ing.unit != '' %}{{ ing.unit }} {% endif %}
+                {% if ing.unit and ing.unit != '' %}{{ ing.unit.name | lower }} {% endif %}
                 {{ ing.name }}
-                {% if ing.notes %}
-                <span style="color:#999;font-size:0.85rem;">({{ ing.notes }})</span>
-                {% endif %}
+                {% if ing.notes %}<span style="color:#999;font-size:0.85rem;">({{ ing.notes }})</span>{% endif %}
             </li>
             {% endfor %}
         </ul>
         {% endif %}
 
-        {# Steps — each step may have an optional photo #}
+        {# Steps view #}
         {% if steps %}
         <h2>Steps</h2>
         <ol class="recipe-step-list">
@@ -108,13 +445,9 @@
                 {{ step.text }}
                 {% set photo_url = step_photo_map.get(step.order) %}
                 {% if photo_url %}
-                <img
-                    src="{{ photo_url }}"
-                    alt="Step {{ step.order }}"
-                    style="display:block;margin-top:0.75rem;border-radius:6px;
-                           max-width:100%;max-height:300px;object-fit:cover;"
-                    loading="lazy"
-                >
+                <img src="{{ photo_url }}" alt="Step {{ step.order }}"
+                     style="display:block;margin-top:0.75rem;border-radius:6px;
+                            max-width:100%;max-height:300px;object-fit:cover;" loading="lazy">
                 {% endif %}
             </li>
             {% endfor %}
@@ -127,5 +460,231 @@
 
     </article>
 
+    {# Comments section #}
+    <section id="comments" style="margin-top:3rem;border-top:1px solid var(--border);padding-top:2rem;">
+        <h2 style="margin-top:0;margin-bottom:1.5rem;">
+            Cooked this
+            {% if comments %}
+            <span style="font-size:0.85rem;font-weight:400;color:var(--text-faint);">({{ comments | length }})</span>
+            {% endif %}
+        </h2>
+
+        {% if current_user %}
+            {% if comment_error %}
+            <p style="color:#b5541a;background:#fdf3ee;border:1px solid #f5c9b0;
+                      border-radius:6px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.9rem;">
+                {% if comment_error == 'empty' %}Please write something before submitting.
+                {% elif comment_error == 'toolong' %}Comment is too long (max 2000 characters).
+                {% else %}Something went wrong. Please try again.{% endif %}
+            </p>
+            {% endif %}
+            <form method="post" action="/api/v1/recipes/{{ recipe.id }}/comments/submit"
+                  enctype="multipart/form-data" style="margin-bottom:2rem;">
+                <textarea name="content" rows="3"
+                          placeholder="Did you make this recipe? Share your experience…" required
+                          style="width:100%;padding:0.6rem 0.75rem;border:1px solid var(--border);
+                                 border-radius:var(--radius);font-size:0.95rem;font-family:inherit;
+                                 resize:vertical;outline:none;transition:border-color 0.15s;margin-bottom:0.75rem;"
+                          onfocus="this.style.borderColor='#b5541a'"
+                          onblur="this.style.borderColor='#e5e5e0'"></textarea>
+                <div style="margin-bottom:0.75rem;">
+                    <p style="font-size:0.8rem;color:var(--text-faint);margin-bottom:0.5rem;">
+                        Add up to 4 photos (optional, JPEG/PNG/WebP, max 10 MB each)
+                    </p>
+                    <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+                        {% for i in range(4) %}
+                        <div style="position:relative;">
+                            <label style="display:flex;align-items:center;justify-content:center;
+                                          width:80px;height:80px;border:1px dashed var(--border);
+                                          border-radius:var(--radius);cursor:pointer;background:var(--muted);
+                                          font-size:1.5rem;transition:border-color 0.15s;"
+                                   onmouseover="this.style.borderColor='#b5541a'"
+                                   onmouseout="this.style.borderColor='var(--border)'">
+                                <span id="icon-photo-{{ i }}">📷</span>
+                                <img id="preview-photo-{{ i }}"
+                                     style="display:none;width:80px;height:80px;object-fit:cover;border-radius:var(--radius);">
+                                <input type="file" name="photo_{{ i }}" accept="image/jpeg,image/png,image/webp"
+                                       style="position:absolute;inset:0;opacity:0;cursor:pointer;"
+                                       onchange="previewCommentPhoto(this, {{ i }})">
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div style="display:flex;justify-content:flex-end;">
+                    <button type="submit"
+                            style="padding:0.5rem 1.25rem;background:var(--accent);color:#fff;
+                                   border:none;border-radius:var(--radius);font-size:0.9rem;
+                                   font-weight:600;cursor:pointer;transition:background 0.15s;"
+                            onmouseover="this.style.background='#9a4516'"
+                            onmouseout="this.style.background='#b5541a'">I cooked this! 🍳</button>
+                </div>
+            </form>
+        {% else %}
+        <p style="margin-bottom:2rem;font-size:0.9rem;color:var(--text-soft);">
+            <a href="/login">Log in</a> to share your experience with this recipe.
+        </p>
+        {% endif %}
+
+        {% if comments %}
+        <div>{% for comment in comments %}{{ render_comment(comment, recipe.id) }}{% endfor %}</div>
+        {% else %}
+        <p style="color:var(--text-faint);font-size:0.9rem;">No one has cooked this yet. Be the first!</p>
+        {% endif %}
+    </section>
+
 </div>
+
+<div id="photo-lightbox"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);
+            z-index:1000;align-items:center;justify-content:center;cursor:pointer;"
+     onclick="closeLightbox()">
+    <img id="lightbox-img" style="max-width:90vw;max-height:90vh;border-radius:6px;">
+</div>
+
+<script>
+const UNIT_OPTIONS_HTML = {{ unit_options_html | tojson }};
+
+// ── Edit panel toggle ──
+function toggleEditPanel() {
+    const p = document.getElementById('edit-panel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+    if (p.style.display === 'block') p.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function confirmDelete() {
+    return window.confirm('Are you sure you want to delete this recipe? This cannot be undone.');
+}
+
+// ── Ingredient rows ──
+function addIngredientEdit() {
+    const list = document.getElementById('edit-ing-list');
+    const row = document.createElement('div');
+    row.className = 'ing-row';
+    row.innerHTML = `
+        <input type="number" name="ing_qty[]" step="any" min="0" placeholder="200">
+        <select name="ing_unit[]">${UNIT_OPTIONS_HTML}</select>
+        <input type="text" name="ing_name[]" required placeholder="e.g. flour">
+        <input type="text" name="ing_notes[]" placeholder="optional">
+        <button type="button" class="rm-btn" onclick="removeRow(this,'edit-ing-list','ing-row')">×</button>
+    `;
+    list.appendChild(row);
+    row.querySelector('input[name="ing_name[]"]').focus();
+}
+
+function removeRow(btn, listId, rowClass) {
+    const list = document.getElementById(listId);
+    if (list.querySelectorAll('.' + rowClass).length > 1) btn.closest('.' + rowClass).remove();
+}
+
+// ── Step rows ──
+let editStepCount = {{ steps | length if steps else 1 }};
+
+function addStepEdit() {
+    editStepCount++;
+    const list = document.getElementById('edit-steps-list');
+    const div = document.createElement('div');
+    div.className = 'step-edit-row';
+    div.dataset.step = editStepCount;
+    const idx = list.querySelectorAll('.step-edit-row').length;
+    div.innerHTML = `
+        <div class="step-edit-header">
+            <span class="step-num">${editStepCount}</span>
+            <span style="font-size:0.82rem;color:var(--text-soft);flex:1;">Step ${editStepCount}</span>
+            <button type="button" class="rm-btn" onclick="removeStepEdit(this)">×</button>
+        </div>
+        <div class="edit-field" style="margin-bottom:0.6rem;">
+            <textarea name="step_text[]" rows="2" required placeholder="Describe this step…"></textarea>
+        </div>
+        <input type="hidden" name="step_keep_photo[]" value="">
+        <label style="font-size:0.82rem;color:var(--text-faint);cursor:pointer;">
+            <input type="file" name="step_photo[]" accept="image/jpeg,image/png,image/webp"
+                   style="display:none;" onchange="previewNewStepPhoto(this, ${idx})">
+            📷 Add photo
+        </label>
+        <img id="step-thumb-${idx}" style="display:none;" class="step-photo-thumb">
+    `;
+    list.appendChild(div);
+    div.querySelector('textarea').focus();
+    renumberStepsEdit();
+}
+
+function removeStepEdit(btn) {
+    const list = document.getElementById('edit-steps-list');
+    if (list.querySelectorAll('.step-edit-row').length > 1) {
+        btn.closest('.step-edit-row').remove();
+        renumberStepsEdit();
+    }
+}
+
+function renumberStepsEdit() {
+    document.querySelectorAll('#edit-steps-list .step-edit-row').forEach((row, idx) => {
+        const n = idx + 1;
+        row.dataset.step = n;
+        row.querySelector('.step-num').textContent = n;
+        const label = row.querySelector('.step-edit-header span:nth-child(2)');
+        if (label) label.textContent = `Step ${n}`;
+    });
+    editStepCount = document.querySelectorAll('#edit-steps-list .step-edit-row').length;
+}
+
+// ── Step photo helpers ──
+function replaceStepPhoto(input, idx) {
+    if (input.files && input.files[0]) {
+        const keep = document.getElementById(`step-keep-${idx}`);
+        if (keep) keep.value = '';
+        const thumb = document.getElementById(`step-thumb-${idx}`);
+        const reader = new FileReader();
+        reader.onload = e => { thumb.src = e.target.result; thumb.style.display = 'block'; };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function removeStepPhoto(idx) {
+    const keep = document.getElementById(`step-keep-${idx}`);
+    if (keep) keep.value = '';
+    const thumb = document.getElementById(`step-thumb-${idx}`);
+    if (thumb) thumb.style.display = 'none';
+}
+
+function previewNewStepPhoto(input, idx) {
+    if (input.files && input.files[0]) {
+        const thumb = document.getElementById(`step-thumb-${idx}`);
+        const reader = new FileReader();
+        reader.onload = e => { thumb.src = e.target.result; thumb.style.display = 'block'; };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// ── Comment photo preview ──
+function previewCommentPhoto(input, index) {
+    const icon = document.getElementById(`icon-photo-${index}`);
+    const preview = document.getElementById(`preview-photo-${index}`);
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; icon.style.display = 'none'; };
+        reader.readAsDataURL(input.files[0]);
+    } else { preview.style.display = 'none'; icon.style.display = 'block'; }
+}
+
+// ── Reply forms ──
+function toggleReplyForm(id) {
+    const el = document.getElementById(id);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    if (el.style.display === 'block') el.querySelector('textarea').focus();
+}
+
+// ── Lightbox ──
+function openPhoto(url) {
+    document.getElementById('lightbox-img').src = url;
+    document.getElementById('photo-lightbox').style.display = 'flex';
+}
+function closeLightbox() { document.getElementById('photo-lightbox').style.display = 'none'; }
+
+// Auto-open edit panel on validation error
+{% if edit_error %}
+document.addEventListener('DOMContentLoaded', () => toggleEditPanel());
+{% endif %}
+</script>
+
 {% endblock %}

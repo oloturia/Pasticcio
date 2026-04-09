@@ -40,12 +40,12 @@ from app.models.recipe import (
 )
 from app.models.user import User
 from app.models.reaction import Reaction, ReactionType
+from app.models.cooked_this import CookedThis, CookedThisStatus
 from app.routers.auth import get_current_user
-
 from app.tasks.delivery import deliver_to_followers
-
 from app.templates_env import templates
 from app.dependencies import get_current_user_optional
+from app.routers.recipe_utils import unit_options_html
 
 router = APIRouter(prefix="/api/v1/recipes", tags=["recipes"])
 
@@ -353,7 +353,12 @@ async def get_recipe(
             selectinload(Recipe.translations),
             selectinload(Recipe.ingredients),
             selectinload(Recipe.photos),
-            selectinload(Recipe.step_photos), 
+            selectinload(Recipe.step_photos),
+            selectinload(Recipe.cooked_this).options(
+                selectinload(CookedThis.author),
+                selectinload(CookedThis.photos),
+                selectinload(CookedThis.replies).selectinload(CookedThis.author),
+            ),
         )
     )
     recipe = result.scalar_one_or_none()
@@ -372,7 +377,11 @@ async def get_recipe(
             recipe.translations[0] if recipe.translations else None,
         )
         steps = sorted(translation.steps, key=lambda s: s.get("order", 0)) if translation else []
-
+        comments = [
+            c for c in recipe.cooked_this
+            if c.status == CookedThisStatus.PUBLISHED and c.parent_id is None
+        ]
+        comments.sort(key=lambda c: c.created_at)
         cover = next((p for p in recipe.photos if p.is_cover), None)
         if cover is None and recipe.photos:
             cover = recipe.photos[0]
@@ -388,7 +397,11 @@ async def get_recipe(
                 "cover_url": f"/media/{cover.url}" if cover else None,
                 "cover_alt": cover.alt_text if cover else None,
                 "step_photo_map": step_photo_map,
-                "current_user": current_user,  
+                "current_user": current_user,
+                "comments": comments,
+                "comment_error": None,
+                "comment_content": None,
+                "unit_options_html": unit_options_html(),
             },
         )
 

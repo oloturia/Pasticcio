@@ -49,10 +49,6 @@ def generate_rsa_keypair() -> tuple[str, str]:
 
     Returns (private_key_pem, public_key_pem) as strings.
     Both are PEM-encoded and safe to store in the database.
-
-    2048 bits is the minimum recommended by Mastodon.
-    4096 bits would be more secure but slower — 2048 is fine
-    for HTTP Signatures where keys are rotated occasionally.
     """
     private_key = rsa.generate_private_key(
         public_exponent=65537,
@@ -94,10 +90,13 @@ def sign_request(
         private_key_pem: PEM-encoded RSA private key of the sender
         key_id:          URL that points to the sender's public key,
                          e.g. "https://instance.example/users/maria#main-key"
-                         The receiver will fetch this URL to verify the sig.
 
     Returns a dict of headers to merge into the request:
-        {"Date": "...", "Digest": "...", "Signature": "..."}
+        {"Date": "...", "Host": "...", "Digest": "...", "Signature": "..."}
+
+    NOTE: header names in the returned dict use canonical casing (Date, Host,
+    Digest, Signature) which is what HTTP clients expect. Internally we use
+    lowercase keys for the signing string as required by the spec.
     """
     from urllib.parse import urlparse
 
@@ -108,27 +107,33 @@ def sign_request(
     # Date header — required by the spec, used to prevent replay attacks
     date = formatdate(usegmt=True)
 
+    # Build the headers dict with canonical (mixed) casing for HTTP delivery
     headers: dict[str, str] = {
         "Date": date,
         "Host": host,
     }
 
     # For POST requests, add a Digest header (SHA-256 of the body).
-    # This lets the receiver verify the body wasn't tampered with.
     signed_headers = "(request-target) host date"
     if body is not None:
         digest = base64.b64encode(hashlib.sha256(body).digest()).decode()
         headers["Digest"] = f"SHA-256={digest}"
         signed_headers += " digest"
 
-    # Build the signing string — a newline-separated list of
-    # "header-name: value" pairs in the order listed in signed_headers
+    # Build the signing string.
+    # The spec requires header names in lowercase in the signing string,
+    # but our headers dict uses canonical (mixed) casing.
+    # We create a lowercase lookup dict to bridge the two.
+    headers_lower = {k.lower(): v for k, v in headers.items()}
+
     signing_parts = []
     for header in signed_headers.split():
         if header == "(request-target)":
             signing_parts.append(f"(request-target): {method.lower()} {path}")
         else:
-            signing_parts.append(f"{header}: {headers[header]}")
+            # header is already lowercase (from signed_headers string)
+            # headers_lower has all keys in lowercase → no KeyError
+            signing_parts.append(f"{header}: {headers_lower[header]}")
     signing_string = "\n".join(signing_parts)
 
     # Sign with RSA-SHA256
@@ -161,7 +166,6 @@ def sign_request(
 def _parse_signature_header(header: str) -> dict[str, str]:
     """Parse the Signature header into a dict of key=value pairs."""
     result = {}
-    # Match key="value" or key=value patterns
     for match in re.finditer(r'(\w+)="([^"]*)"', header):
         result[match.group(1)] = match.group(2)
     return result
@@ -179,15 +183,18 @@ def verify_request(
     Args:
         method:         HTTP method in lowercase
         path:           Request path (with query string if present)
-        headers:        All request headers as a dict (lowercased keys)
+        headers:        All request headers as a dict.
+                        FastAPI passes these with lowercase keys, which is
+                        what we expect here (the spec uses lowercase names).
         public_key_pem: PEM-encoded RSA public key of the claimed sender
 
     Returns True if the signature is valid, False otherwise.
-    We catch all exceptions and return False — a verification failure
-    should never crash the inbox handler, just reject the request.
     """
     try:
-        sig_header = headers.get("signature", "")
+        # Normalize incoming headers to lowercase for safe lookup
+        headers_lower = {k.lower(): v for k, v in headers.items()}
+
+        sig_header = headers_lower.get("signature", "")
         if not sig_header:
             return False
 
@@ -204,7 +211,7 @@ def verify_request(
             if header == "(request-target)":
                 signing_parts.append(f"(request-target): {method.lower()} {path}")
             else:
-                value = headers.get(header, "")
+                value = headers_lower.get(header, "")
                 signing_parts.append(f"{header}: {value}")
         signing_string = "\n".join(signing_parts)
 
@@ -222,5 +229,4 @@ def verify_request(
         return True
 
     except Exception:
-        # Any failure — bad signature, missing headers, wrong key — returns False
         return False

@@ -19,7 +19,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, Text, func
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, Text, func, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -109,5 +109,44 @@ class CookedThis(Base):
         remote_side="CookedThis.id",
     )
 
+    photos: Mapped[list["CookedThisPhoto"]] = relationship(
+        "CookedThisPhoto",
+        back_populates="comment",
+        cascade="all, delete-orphan",
+        order_by="CookedThisPhoto.sort_order",
+    )
+
     def __repr__(self) -> str:
         return f"<CookedThis {self.id} by {self.actor_ap_id}>"
+
+class CookedThisPhoto(Base):
+    __tablename__ = "cooked_this_photos"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+
+    cooked_this_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("cooked_this.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # Display order (0-based) — up to 4 photos per comment
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    # Path relative to MEDIA_ROOT (e.g. "comments/{uuid}/0.jpg")
+    url: Mapped[str] = mapped_column(String(512), nullable=False)
+
+    alt_text: Mapped[str | None] = mapped_column(String(256), nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    comment: Mapped["CookedThis"] = relationship("CookedThis", back_populates="photos")
+
+    def __repr__(self) -> str:
+        return f"<CookedThisPhoto {self.cooked_this_id} #{self.sort_order}>"
+
