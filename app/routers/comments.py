@@ -122,7 +122,6 @@ async def create_comment(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):  
-    logger.warning("CREATE_COMMENT called: recipe_id=%s user=%s", recipe_id, current_user.username)
     """Submit a local comment. Requires authentication."""
     result = await db.execute(
         select(Recipe).where(Recipe.id == recipe_id)

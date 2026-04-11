@@ -27,6 +27,7 @@ from app.routers import recipe_edit
 from app.routers import static_pages
 from app.routers import follow
 from app.routers import dashboard
+from app.routers import recipe_fork
 from fastapi.staticfiles import StaticFiles
 import os
 
@@ -87,7 +88,7 @@ app.include_router(recipe_edit.router)
 app.include_router(static_pages.router)
 app.include_router(follow.router)
 app.include_router(dashboard.router)
-
+app.include_router(recipe_fork.router)
 # --- Root ---
 
 async def root():

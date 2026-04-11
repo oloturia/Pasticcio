@@ -318,6 +318,64 @@ async def inbox(
         return Response(status_code=202)
 
     # ----------------------------------------------------------
+    # Accept{Follow} — remote server approved our follow request
+    # ----------------------------------------------------------
+    # When WE follow a remote actor, they send Accept{Follow} back.
+    # Our job here is to mark the pending FollowRequest as accepted.
+    #
+    # We do NOT create a Follower row — the Follower table tracks who
+    # follows US (so we know where to deliver our activities). When we
+    # follow someone else, THEY deliver their activities to our inbox;
+    # we don't need to track their inbox in our Follower table.
+    # ----------------------------------------------------------
+    if activity_type == "Accept":
+        obj = raw.get("object", {})
+
+        # Extract the Follow activity ID and original actor from the object.
+        # Some servers send the full Follow dict, others just the ID string.
+        if isinstance(obj, dict):
+            follow_actor = obj.get("actor")  # our local user's AP ID
+            follow_id = obj.get("id")        # the Follow activity ID we sent
+        elif isinstance(obj, str):
+            follow_actor = None
+            follow_id = obj
+        else:
+            return Response(status_code=202)
+
+        from app.models.follow_request import FollowRequest, FollowRequestStatus
+        from datetime import datetime, timezone
+
+        # Primary lookup: match by the Follow activity ID we stored when
+        # the user clicked Follow.
+        req = None
+        if follow_id:
+            req_result = await db.execute(
+                select(FollowRequest).where(
+                    FollowRequest.follow_activity_id == follow_id,
+                    FollowRequest.status == FollowRequestStatus.PENDING,
+                )
+            )
+            req = req_result.scalar_one_or_none()
+
+        # Fallback: some servers don't echo back the activity ID.
+        # Match by the local user's AP ID stored in actor_ap_id.
+        if not req and follow_actor:
+            req_result = await db.execute(
+                select(FollowRequest).where(
+                    FollowRequest.actor_ap_id == follow_actor,
+                    FollowRequest.status == FollowRequestStatus.PENDING,
+                )
+            )
+            req = req_result.scalar_one_or_none()
+
+        if req:
+            req.status = FollowRequestStatus.ACCEPTED
+            req.decided_at = datetime.now(timezone.utc)
+            await db.flush()
+
+        return Response(status_code=202)
+
+    # ----------------------------------------------------------
     # Undo
     # ----------------------------------------------------------
     if activity_type == "Undo":
