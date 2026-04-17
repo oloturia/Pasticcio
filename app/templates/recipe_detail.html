@@ -457,10 +457,25 @@
         <p class="ap-link" style="margin-top:2rem;">
             <a href="{{ recipe.ap_id }}">ActivityPub object</a>
         </p>
-
+        {% if current_user %}
+            {% if recipe.status == 'published' %}
+            <form method="POST" action="/recipes/{{ recipe.id }}/fork" style="display: inline;">     
+                <button type="submit" class="btn-fork" title="Crea una copia modificabile di questa ricetta">
+                    🍴 Fork Recipe
+                </button>
+                <small class="fork-help-text">
+                    Make a different version of this recipe.
+                </small>
+            </form>
+            {% endif %}
+        {% else %}
+            <a href="/login?next={{ request.url.path }}" class="btn-fork btn-disabled" title="Effettua il login per forkare questa ricetta">
+                🍴 Fork Recipe
+            </a>
+        {% endif %}
+    {# Comments section #}
     </article>
 
-    {# Comments section #}
     <section id="comments" style="margin-top:3rem;border-top:1px solid var(--border);padding-top:2rem;">
         <h2 style="margin-top:0;margin-bottom:1.5rem;">
             Cooked this

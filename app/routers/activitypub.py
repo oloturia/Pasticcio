@@ -527,21 +527,34 @@ async def inbox(
         )
         db.add(comment)
         await db.flush()
-        # Notify recipe author about federated comment
-        recipe_author_result = await db.execute(
-            select(User).where(User.id == recipe.author_id)
-        )
-        recipe_author = recipe_author_result.scalar_one_or_none()
-        if recipe_author and not recipe_author.is_remote:
-            await create_notification(
-                db=db,
-                recipient_id=recipe_author.id,
-                notification_type=NotificationType.NEW_COMMENT,
-                actor_ap_id=actor_url,
-                actor_display_name=remote_actor.get("name") or remote_actor.get("preferredUsername"),
-                object_id=str(recipe_id),
-                summary="commented on your recipe",
+
+        # Notify recipe author about federated comment.
+        # recipe may be None if this is a nested reply (reply to a comment,
+        # not directly to a recipe) — load it via recipe_id in that case.
+        author_id = recipe.author_id if recipe else None
+        if not author_id:
+            recipe_for_notif_result = await db.execute(
+                select(Recipe).where(Recipe.id == recipe_id)
             )
+            recipe_for_notif = recipe_for_notif_result.scalar_one_or_none()
+            if recipe_for_notif:
+                author_id = recipe_for_notif.author_id
+
+        if author_id:
+            recipe_author_result = await db.execute(
+                select(User).where(User.id == author_id)
+            )
+            recipe_author = recipe_author_result.scalar_one_or_none()
+            if recipe_author and not recipe_author.is_remote:
+                await create_notification(
+                    db=db,
+                    recipient_id=recipe_author.id,
+                    notification_type=NotificationType.NEW_COMMENT,
+                    actor_ap_id=actor_url,
+                    actor_display_name=remote_actor.get("name") or remote_actor.get("preferredUsername"),
+                    object_id=str(recipe_id),
+                    summary="commented on your recipe",
+                )
         return Response(status_code=202)
 
     # ----------------------------------------------------------

@@ -362,12 +362,13 @@ async def get_recipe(
         )
     )
     recipe = result.scalar_one_or_none()
+    if not recipe or recipe.status == RecipeStatus.DELETED:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recipe not found")
+
     step_photo_map = {
         p.step_order: f"/media/{p.url}"
         for p in recipe.step_photos
     }
-    if not recipe or recipe.status == RecipeStatus.DELETED:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recipe not found")
 
     accept = request.headers.get("accept", "")
     if "text/html" in accept and "application/activity+json" not in accept:
