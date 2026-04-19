@@ -457,22 +457,67 @@
         <p class="ap-link" style="margin-top:2rem;">
             <a href="{{ recipe.ap_id }}">ActivityPub object</a>
         </p>
-        {% if current_user %}
-            {% if recipe.status == 'published' %}
-            <form method="POST" action="/recipes/{{ recipe.id }}/fork" style="display: inline;">     
-                <button type="submit" class="btn-fork" title="Crea una copia modificabile di questa ricetta">
-                    🍴 Fork Recipe
-                </button>
-                <small class="fork-help-text">
-                    Make a different version of this recipe.
-                </small>
-            </form>
+        <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-top:0.5rem;">
+
+            {# ── Bookmark button ── #}
+            {% if current_user %}
+                {% if is_bookmarked %}
+                <form method="post" action="/api/v1/bookmarks/{{ bookmark_id }}/delete" style="display:inline;">
+                    <button type="submit"
+                            style="padding:0.4rem 0.9rem;background:#fff3e0;color:#b5541a;
+                                   border:1px solid #f5c9b0;border-radius:var(--radius);
+                                   font-size:0.85rem;font-weight:600;cursor:pointer;
+                                   font-family:inherit;"
+                            title="Remove from saved recipes"
+                            onmouseover="this.style.background='#ffe0b2'"
+                            onmouseout="this.style.background='#fff3e0'">
+                        🔖 Saved
+                    </button>
+                </form>
+                {% else %}
+                <form method="post" action="/api/v1/bookmarks/add" style="display:inline;">
+                    <input type="hidden" name="recipe_ap_id" value="{{ recipe.ap_id }}">
+                    <input type="hidden" name="title" value="{{ translation.title if translation else recipe.slug }}">
+                    <input type="hidden" name="author_ap_id" value="{{ recipe.author.ap_id }}">
+                    <input type="hidden" name="author_name" value="{{ recipe.author.display_name or recipe.author.username }}">
+                    <button type="submit"
+                            style="padding:0.4rem 0.9rem;background:#fff;color:var(--text-soft);
+                                   border:1px solid var(--border);border-radius:var(--radius);
+                                   font-size:0.85rem;font-weight:600;cursor:pointer;
+                                   font-family:inherit;"
+                            title="Save to your cookbook"
+                            onmouseover="this.style.borderColor='#b5541a';this.style.color='#b5541a'"
+                            onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-soft)'">
+                        🔖 Save
+                    </button>
+                </form>
+                {% endif %}
+            {% else %}
+                <a href="/login?next={{ request.url.path }}"
+                   style="padding:0.4rem 0.9rem;background:#fff;color:var(--text-faint);
+                          border:1px solid var(--border);border-radius:var(--radius);
+                          font-size:0.85rem;font-weight:600;text-decoration:none;">
+                    🔖 Save
+                </a>
             {% endif %}
-        {% else %}
-            <a href="/login?next={{ request.url.path }}" class="btn-fork btn-disabled" title="Effettua il login per forkare questa ricetta">
-                🍴 Fork Recipe
-            </a>
-        {% endif %}
+
+            {# ── Fork button ── #}
+            {% if current_user %}
+                {% if recipe.status == 'published' %}
+                <form method="POST" action="/recipes/{{ recipe.id }}/fork" style="display:inline;">
+                    <button type="submit" class="btn-fork"
+                            title="Make your own version of this recipe">
+                        🍴 Fork
+                    </button>
+                </form>
+                {% endif %}
+            {% else %}
+                <a href="/login?next={{ request.url.path }}" class="btn-fork btn-disabled">
+                    🍴 Fork
+                </a>
+            {% endif %}
+
+        </div>
     {# Comments section #}
     </article>
 

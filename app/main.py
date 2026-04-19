@@ -28,6 +28,7 @@ from app.routers import static_pages
 from app.routers import follow
 from app.routers import dashboard
 from app.routers import recipe_fork
+from app.routers import bookmark_form
 from fastapi.staticfiles import StaticFiles
 import os
 
@@ -89,6 +90,7 @@ app.include_router(static_pages.router)
 app.include_router(follow.router)
 app.include_router(dashboard.router)
 app.include_router(recipe_fork.router)
+app.include_router(bookmark_form.router)
 # --- Root ---
 
 async def root():

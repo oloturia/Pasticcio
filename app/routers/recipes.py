@@ -40,6 +40,7 @@ from app.models.recipe import (
 )
 from app.models.user import User
 from app.models.reaction import Reaction, ReactionType
+from app.models.moderation import Bookmark
 from app.models.cooked_this import CookedThis, CookedThisStatus
 from app.routers.auth import get_current_user
 from app.tasks.delivery import deliver_to_followers
@@ -387,6 +388,21 @@ async def get_recipe(
         if cover is None and recipe.photos:
             cover = recipe.photos[0]
 
+        # Check if current user has bookmarked this recipe
+        is_bookmarked = False
+        bookmark_id = None
+        if current_user:
+            bm_result = await db.execute(
+                select(Bookmark).where(
+                    Bookmark.user_id == current_user.id,
+                    Bookmark.recipe_ap_id == recipe.ap_id,
+                )
+            )
+            bm = bm_result.scalar_one_or_none()
+            if bm:
+                is_bookmarked = True
+                bookmark_id = str(bm.id)
+
         return templates.TemplateResponse(
             "recipe_detail.html",
             {
@@ -403,6 +419,8 @@ async def get_recipe(
                 "comment_error": None,
                 "comment_content": None,
                 "unit_options_html": unit_options_html(),
+                "is_bookmarked": is_bookmarked,
+                "bookmark_id": bookmark_id,
             },
         )
 
