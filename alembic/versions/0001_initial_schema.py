@@ -1,0 +1,170 @@
+"""initial schema — users and recipes
+
+Revision ID: 0001
+Revises:
+Create Date: 2024-01-01 00:00:00.000000
+"""
+from collections.abc import Sequence
+
+import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
+
+from alembic import op
+
+revision: str = "0001"
+down_revision: str | None = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
+
+
+def upgrade() -> None:
+    # --- ENUM types ---
+    # Use DO $$ pattern to avoid conflicts when SQLAlchemy
+    # has already created the type via model import
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE recipestatustype AS ENUM ('draft', 'published', 'unlisted', 'deleted');
+        EXCEPTION WHEN duplicate_object THEN null; END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE translationstatustype AS ENUM ('original', 'draft', 'reviewed');
+        EXCEPTION WHEN duplicate_object THEN null; END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE difficulttype AS ENUM ('easy', 'medium', 'hard');
+        EXCEPTION WHEN duplicate_object THEN null; END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE ingredientunittype AS ENUM ('g', 'kg', 'oz', 'lb', 'ml', 'l', 'tsp', 'tbsp', 'cup', 'fl_oz', 'piece', 'pinch', 'to_taste', '');
+        EXCEPTION WHEN duplicate_object THEN null; END $$;
+    """)
+
+    # --- users ---
+    op.create_table(
+        "users",
+        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+        sa.Column("username", sa.String(64), nullable=False),
+        sa.Column("display_name", sa.String(128), nullable=True),
+        sa.Column("bio", sa.Text(), nullable=True),
+        sa.Column("avatar_url", sa.String(512), nullable=True),
+        sa.Column("ap_id", sa.String(512), nullable=False),
+        sa.Column("public_key", sa.Text(), nullable=True),
+        sa.Column("private_key", sa.Text(), nullable=True),
+        sa.Column("is_remote", sa.Boolean(), nullable=False, server_default="false"),
+        sa.Column("remote_actor_url", sa.String(512), nullable=True),
+        sa.Column("email", sa.String(256), nullable=True),
+        sa.Column("hashed_password", sa.String(256), nullable=True),
+        sa.Column("is_active", sa.Boolean(), nullable=False, server_default="true"),
+        sa.Column("is_admin", sa.Boolean(), nullable=False, server_default="false"),
+        sa.Column("preferred_language", sa.String(10), nullable=False, server_default="en"),
+        sa.Column("settings", postgresql.JSONB(), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+    )
+    op.create_index("ix_users_username", "users", ["username"], unique=True)
+    op.create_index("ix_users_ap_id", "users", ["ap_id"], unique=True)
+    op.create_index("ix_users_email", "users", ["email"], unique=True)
+
+    # --- food_items ---
+    op.create_table(
+        "food_items",
+        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+        sa.Column("name", sa.String(256), nullable=False),
+        sa.Column("names", postgresql.JSONB(), nullable=True),
+        sa.Column("source", sa.String(64), nullable=True),
+        sa.Column("source_id", sa.String(128), nullable=True),
+        sa.Column("per_100g", postgresql.JSONB(), nullable=True),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+    )
+
+    # --- recipes ---
+    op.create_table(
+        "recipes",
+        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+        sa.Column("author_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("slug", sa.String(256), nullable=False),
+        sa.Column("ap_id", sa.String(512), nullable=False),
+        sa.Column("status", sa.Text(), nullable=False, server_default="draft"),
+        sa.Column("original_language", sa.String(10), nullable=False, server_default="en"),
+        sa.Column("prep_time_seconds", sa.Integer(), nullable=True),
+        sa.Column("cook_time_seconds", sa.Integer(), nullable=True),
+        sa.Column("servings", sa.Integer(), nullable=True),
+        sa.Column("difficulty", sa.Text(), nullable=True),
+        sa.Column("dietary_tags", postgresql.ARRAY(sa.String()), nullable=False, server_default="{}"),
+        sa.Column("metabolic_tags", postgresql.ARRAY(sa.String()), nullable=False, server_default="{}"),
+        sa.Column("show_metabolic_disclaimer", sa.Boolean(), nullable=False, server_default="false"),
+        sa.Column("ap_object", postgresql.JSONB(), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column("published_at", sa.DateTime(timezone=True), nullable=True),
+    )
+    # Cast columns to their enum types
+    op.execute("ALTER TABLE recipes ALTER COLUMN status TYPE recipestatustype USING status::recipestatustype")
+    op.execute("ALTER TABLE recipes ALTER COLUMN difficulty TYPE difficulttype USING difficulty::difficulttype")
+
+    op.create_index("ix_recipes_author_id", "recipes", ["author_id"])
+    op.create_index("ix_recipes_ap_id", "recipes", ["ap_id"], unique=True)
+    op.create_index("ix_recipes_status", "recipes", ["status"])
+    op.create_index("ix_recipes_author_slug", "recipes", ["author_id", "slug"], unique=True)
+    op.create_index("ix_recipes_dietary_tags", "recipes", ["dietary_tags"], postgresql_using="gin")
+
+    # --- recipe_translations ---
+    op.create_table(
+        "recipe_translations",
+        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+        sa.Column("recipe_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("recipes.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("language", sa.String(10), nullable=False),
+        sa.Column("title", sa.String(256), nullable=False),
+        sa.Column("description", sa.Text(), nullable=True),
+        sa.Column("steps", postgresql.JSONB(), nullable=False, server_default="[]"),
+        sa.Column("status", sa.Text(), nullable=False, server_default="draft"),
+        sa.Column("translated_by_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+    )
+    op.execute("ALTER TABLE recipe_translations ALTER COLUMN status TYPE translationstatustype USING status::translationstatustype")
+    op.create_index("ix_recipe_translations_recipe_id", "recipe_translations", ["recipe_id"])
+    op.create_index("ix_recipe_translations_recipe_language", "recipe_translations", ["recipe_id", "language"], unique=True)
+
+    # --- recipe_ingredients ---
+    op.create_table(
+        "recipe_ingredients",
+        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+        sa.Column("recipe_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("recipes.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("sort_order", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("quantity", sa.Numeric(10, 3), nullable=True),
+        sa.Column("unit", sa.Text(), nullable=False, server_default=""),
+        sa.Column("name", sa.String(256), nullable=False),
+        sa.Column("notes", sa.String(256), nullable=True),
+        sa.Column("food_item_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("food_items.id", ondelete="SET NULL"), nullable=True),
+    )
+    op.execute("ALTER TABLE recipe_ingredients ALTER COLUMN unit TYPE ingredientunittype USING unit::ingredientunittype")
+    op.create_index("ix_recipe_ingredients_recipe_id", "recipe_ingredients", ["recipe_id"])
+
+    # --- recipe_photos ---
+    op.create_table(
+        "recipe_photos",
+        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+        sa.Column("recipe_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("recipes.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("url", sa.String(512), nullable=False),
+        sa.Column("alt_text", sa.String(256), nullable=True),
+        sa.Column("is_cover", sa.Boolean(), nullable=False, server_default="false"),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+    )
+    op.create_index("ix_recipe_photos_recipe_id", "recipe_photos", ["recipe_id"])
+
+
+def downgrade() -> None:
+    op.drop_table("recipe_photos")
+    op.drop_table("recipe_ingredients")
+    op.drop_table("recipe_translations")
+    op.drop_table("recipes")
+    op.drop_table("food_items")
+    op.drop_table("users")
+    op.execute("DROP TYPE IF EXISTS ingredientunittype")
+    op.execute("DROP TYPE IF EXISTS difficulttype")
+    op.execute("DROP TYPE IF EXISTS translationstatustype")
+    op.execute("DROP TYPE IF EXISTS recipestatustype")

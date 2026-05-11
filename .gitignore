@@ -1,0 +1,6 @@
+.env
+STATUS.md
+temp
+temp/*
+app/FoodData/FoodData_Central_foundation_food_json.json
+app/FoodData/FoodData_Central_sr_legacy_food_json.json

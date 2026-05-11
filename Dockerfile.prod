@@ -1,0 +1,60 @@
+# ============================================================
+# Dockerfile.prod — production image
+# ============================================================
+#
+# Uses a "multi-stage build": the first stage compiles and installs
+# everything; the second stage copies only what's needed. The result
+# is a smaller final image with no build tools (which would be an
+# unnecessary attack surface in production).
+
+# ---- Stage 1: builder ----
+# Install Python dependencies into an isolated directory.
+FROM python:3.12-slim AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+
+# --prefix /install puts everything under /install instead of /usr/local,
+# making it easy to copy into the final stage.
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+
+# ---- Stage 2: runtime ----
+# Final image: just Python slim + runtime libraries + application code.
+# No gcc, no pip cache, no temporary files.
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Only libpq is needed at runtime (to connect to PostgreSQL).
+# gcc was only needed during compilation in the builder stage.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the Python packages installed in the builder stage
+COPY --from=builder /install /usr/local
+
+# Copy application source code
+COPY app/ ./app/
+
+EXPOSE 8000
+
+# In production:
+# - no --reload (auto-reload is a security risk)
+# - multiple workers (rule of thumb: 2 * CPU cores + 1)
+# The number of workers can be overridden with the WEB_CONCURRENCY
+# environment variable.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]

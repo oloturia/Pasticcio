@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Login — Pasticcio{% endblock %}
+
+{% block content %}
+<div class="page-narrow">
+
+    <div style="max-width:400px;margin:3rem auto;">
+
+        <h1 style="margin-bottom:0.25rem;">Log in</h1>
+        <p class="meta">
+            Don't have an account? <a href="/register">Register</a>
+        </p>
+
+        {% if confirmed %}
+        <p style="color:#2d7a2d;background:#edf7ed;border:1px solid #b6dfb6;
+                  border-radius:6px;padding:0.75rem 1rem;margin:1rem 0;font-size:0.9rem;">
+            ✓ Email confirmed! You can now log in.
+        </p>
+        {% endif %}
+
+        {% if error %}
+        <p style="color:#b5541a;background:#fdf3ee;border:1px solid #f5c9b0;
+                  border-radius:6px;padding:0.75rem 1rem;margin:1rem 0;font-size:0.9rem;">
+            {{ error }}
+        </p>
+        {% endif %}
+
+        <form method="post" action="/login" style="margin-top:1.5rem;display:flex;flex-direction:column;gap:1rem;">
+
+            <div>
+                <label for="username" style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.3rem;">
+                    Username
+                </label>
+                <input
+                    id="username"
+                    name="username"
+                    type="text"
+                    autocomplete="username"
+                    required
+                    value="{{ username or '' }}"
+                    style="width:100%;padding:0.55rem 0.75rem;border:1px solid #e5e5e0;
+                           border-radius:6px;font-size:1rem;background:#fff;
+                           outline:none;transition:border-color 0.15s;"
+                    onfocus="this.style.borderColor='#b5541a'"
+                    onblur="this.style.borderColor='#e5e5e0'"
+                >
+            </div>
+
+            <div>
+                <label for="password" style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.3rem;">
+                    Password
+                </label>
+                <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autocomplete="current-password"
+                    required
+                    style="width:100%;padding:0.55rem 0.75rem;border:1px solid #e5e5e0;
+                           border-radius:6px;font-size:1rem;background:#fff;
+                           outline:none;transition:border-color 0.15s;"
+                    onfocus="this.style.borderColor='#b5541a'"
+                    onblur="this.style.borderColor='#e5e5e0'"
+                >
+            </div>
+
+            <button
+                type="submit"
+                style="padding:0.6rem 1.25rem;background:#b5541a;color:#fff;
+                       border:none;border-radius:6px;font-size:1rem;font-weight:600;
+                       cursor:pointer;transition:background 0.15s;"
+                onmouseover="this.style.background='#9a4516'"
+                onmouseout="this.style.background='#b5541a'"
+            >
+                Log in
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+{% endblock %}

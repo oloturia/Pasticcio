@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Pasticcio{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body>
+
+    <header class="site-header">
+        <div class="site-header-inner">
+
+            {# Logo #}
+            <a class="site-name" href="/">🍝 Pasticcio</a>
+            <span class="site-tagline">federated recipe network</span>
+
+            {# Spacer pushes search + nav to the right #}
+            <div style="flex:1;"></div>
+
+            {# Search form #}
+            <form action="/search" method="get" class="nav-search" role="search">
+                <input
+                    type="search"
+                    name="q"
+                    placeholder="Search recipes…"
+                    value="{{ request.query_params.get('q', '') }}"
+                    aria-label="Search recipes"
+                >
+                <button type="submit" aria-label="Search">
+                    <svg width="14" height="14" viewBox="0 0 20 20" fill="none"
+                         stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <circle cx="8.5" cy="8.5" r="5.5"/>
+                        <line x1="13.5" y1="13.5" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </form>
+            <a href="/search" class="nav-link" style="font-size:0.8rem;white-space:nowrap;">
+                Advanced search
+            </a>
+
+            {# Auth nav #}
+            <nav class="nav-auth">
+                {% if current_user %}
+                    <a href="/recipes/new" class="nav-link">+ New recipe</a>
+                    <a href="/my-recipes" class="nav-link">My cookbook</a>
+                    <a href="/users/{{ current_user.username }}" class="nav-username">
+                        {{ current_user.display_name or current_user.username }}
+                    </a>
+                    <a href="/notifications" class="nav-link" id="notif-link">
+                        Notifications <span id="notif-badge" style="display:none;"></span>
+                    </a>
+                    <form method="post" action="/logout" style="display:inline;">
+                        <button type="submit" class="nav-link-btn">Log out</button>
+                    </form>
+                {% else %}
+                    <a href="/login" class="nav-link">Log in</a>
+                    <a href="/register" class="nav-link nav-link-primary">Register</a>
+                {% endif %}
+            </nav>
+
+        </div>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        Pasticcio &mdash; federated, open-source recipe network &mdash;
+        <a href="/about">About</a> &mdash;
+        <a href="/contact">Contact</a> &mdash;
+        <a href="/terms">Terms &amp; Privacy</a> &mdash;
+        <a href="/.well-known/nodeinfo">NodeInfo</a>
+    </footer>
+
+<script>
+// Fetch unread notification count and update the navbar badge.
+// This runs once after page load so every HTML route gets the badge
+// for free, without each route needing to query the database.
+(async function () {
+    const badge = document.getElementById('notif-badge');
+    if (!badge) return;  // user not logged in, element not present
+
+    try {
+        const resp = await fetch('/api/v1/notifications/unread-count', {
+            credentials: 'same-origin'  // send the session cookie
+        });
+        if (!resp.ok) return;
+        const data = await resp.json();
+
+        if (data.count > 0) {
+            // Bell alone if 1, bell + number if more
+            badge.textContent = data.count > 1
+                ? '🔔 ' + (data.count > 99 ? '99+' : data.count)
+                : '🔔';
+            badge.style.display = 'inline';
+        }
+    } catch (e) {
+        // Network error or not logged in — fail silently
+    }
+})();
+</script>
+
+</body>
+</html>

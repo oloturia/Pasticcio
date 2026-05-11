@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}My cookbook — Pasticcio{% endblock %}
+
+{% block content %}
+<div class="page-wide">
+
+    <h1 style="margin-bottom:0.25rem;">My cookbook</h1>
+    <p class="meta">
+        {{ published_count }} published · {{ draft_count }} draft{% if draft_count != 1 %}s{% endif %}
+        · {{ bookmarked|length }} saved
+    </p>
+
+    {# ── Own recipes ─────────────────────────────────────────── #}
+    <section style="margin-top:2rem;">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;
+                    margin-bottom:1rem;">
+            <h2 style="margin:0;">My recipes</h2>
+            <a href="/recipes/new"
+               style="padding:0.35rem 0.9rem;background:var(--accent);color:#fff;
+                      border-radius:var(--radius);font-size:0.85rem;font-weight:600;
+                      text-decoration:none;">
+                + New recipe
+            </a>
+        </div>
+
+        {% if own_recipes %}
+        <div style="display:flex;flex-direction:column;gap:0.6rem;">
+            {% for recipe in own_recipes %}
+            <div style="display:flex;align-items:center;gap:0.875rem;padding:0.75rem 1rem;
+                        background:#fff;border:1px solid var(--border);
+                        border-radius:var(--radius);">
+
+                {# Thumbnail #}
+                {% if recipe.cover_url %}
+                <div style="width:52px;height:52px;flex-shrink:0;border-radius:calc(var(--radius) - 2px);
+                            background:url('{{ recipe.cover_url }}') center/cover no-repeat;"></div>
+                {% else %}
+                <div style="width:52px;height:52px;flex-shrink:0;border-radius:calc(var(--radius) - 2px);
+                            background:var(--muted);display:flex;align-items:center;
+                            justify-content:center;font-size:1.4rem;">🍝</div>
+                {% endif %}
+
+                {# Info #}
+                <div style="flex:1;min-width:0;">
+                    <a href="/api/v1/recipes/{{ recipe.id }}"
+                       style="font-weight:600;color:var(--text);text-decoration:none;
+                              display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                        {{ recipe.title }}
+                    </a>
+                    <p style="margin:0.1rem 0 0;font-size:0.8rem;color:var(--text-faint);">
+                        {% if recipe.status == 'published' %}
+                        ✓ Published · {{ recipe.published_at }}
+                        {% else %}
+                        ✎ Draft
+                        {% endif %}
+                    </p>
+                </div>
+
+                {# Tags #}
+                <div style="display:flex;gap:0.3rem;flex-shrink:0;">
+                    {% for tag in recipe.dietary_tags[:2] %}
+                    <span class="tag" style="font-size:0.72rem;">{{ tag }}</span>
+                    {% endfor %}
+                </div>
+
+            </div>
+            {% endfor %}
+        </div>
+
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">📝</div>
+            <p>You have not written any recipes yet.</p>
+            <a href="/recipes/new"
+               style="display:inline-block;margin-top:0.75rem;padding:0.45rem 1.1rem;
+                      background:var(--accent);color:#fff;border-radius:var(--radius);
+                      text-decoration:none;font-weight:600;">
+                Write your first recipe
+            </a>
+        </div>
+        {% endif %}
+    </section>
+
+    {# ── Bookmarked recipes ───────────────────────────────────── #}
+    <section style="margin-top:2.5rem;">
+        <h2 style="margin-bottom:1rem;">Saved recipes</h2>
+
+        {% if bookmarked %}
+        <div style="display:flex;flex-direction:column;gap:0.6rem;">
+            {% for bm in bookmarked %}
+            <div style="display:flex;align-items:center;gap:0.875rem;padding:0.75rem 1rem;
+                        background:#fff;border:1px solid var(--border);
+                        border-radius:var(--radius);">
+
+                {# Thumbnail #}
+                {% if bm.cover_url %}
+                <div style="width:52px;height:52px;flex-shrink:0;border-radius:calc(var(--radius) - 2px);
+                            background:url('{{ bm.cover_url }}') center/cover no-repeat;"></div>
+                {% else %}
+                <div style="width:52px;height:52px;flex-shrink:0;border-radius:calc(var(--radius) - 2px);
+                            background:var(--muted);display:flex;align-items:center;
+                            justify-content:center;font-size:1.4rem;">🔖</div>
+                {% endif %}
+
+                {# Info #}
+                <div style="flex:1;min-width:0;">
+                    <a href="{{ bm.link }}"
+                       style="font-weight:600;color:var(--text);text-decoration:none;
+                              display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                        {{ bm.title }}
+                    </a>
+                    <p style="margin:0.1rem 0 0;font-size:0.8rem;color:var(--text-faint);">
+                        {% if bm.author_name %}{{ bm.author_name }} · {% endif %}Saved {{ bm.saved_at }}
+                    </p>
+                </div>
+
+                {# Remove bookmark #}
+                <form method="post" action="/api/v1/bookmarks/{{ bm.id }}"
+                      onsubmit="this.querySelector('button').disabled=true;">
+                    <input type="hidden" name="_method" value="DELETE">
+                    <button type="submit"
+                            style="padding:0.3rem 0.6rem;background:none;border:1px solid var(--border);
+                                   border-radius:var(--radius);font-size:0.78rem;cursor:pointer;
+                                   color:var(--text-faint);font-family:inherit;"
+                            title="Remove bookmark"
+                            onmouseover="this.style.borderColor='#c0392b';this.style.color='#c0392b'"
+                            onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-faint)'">
+                        🗑
+                    </button>
+                </form>
+
+            </div>
+            {% endfor %}
+        </div>
+
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">🔖</div>
+            <p>No saved recipes yet.</p>
+            <p style="font-size:0.9rem;margin-top:0.4rem;">
+                Use the bookmark button on any recipe to save it here.
+            </p>
+        </div>
+        {% endif %}
+    </section>
+
+</div>
+{% endblock %}

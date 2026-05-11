@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Terms &amp; Privacy — {{ instance_name }}{% endblock %}
+
+{% block content %}
+<div class="page-narrow">
+
+    <h1 style="margin-bottom:0.25rem;">Terms &amp; Privacy</h1>
+    <p class="meta">How we handle your data on {{ instance_name }}</p>
+
+    <section style="margin-top:2rem;">
+        <h2>Terms of service</h2>
+
+        <p style="margin-top:0.75rem;line-height:1.7;">
+            By using {{ instance_name }} you agree to the following terms.
+        </p>
+
+        <h3 style="margin-top:1.25rem;font-size:1rem;">Acceptable use</h3>
+        <ul style="margin-top:0.5rem;line-height:1.9;padding-left:1.25rem;">
+            <li>You must be at least 13 years old to create an account.</li>
+            <li>You are responsible for all content you publish.</li>
+            <li>Do not publish content that is illegal, abusive, harassing, or spam.</li>
+            <li>Do not attempt to compromise the security or availability of the service.</li>
+        </ul>
+
+        <h3 style="margin-top:1.25rem;font-size:1rem;">Content</h3>
+        <p style="margin-top:0.5rem;line-height:1.7;">
+            You retain ownership of the content you post. By publishing on this instance
+            you grant {{ instance_name }} a licence to display and distribute your content
+            as part of normal service operation, including federation with other
+            ActivityPub servers.
+        </p>
+        <p style="margin-top:0.5rem;line-height:1.7;">
+            Federated content (recipes and comments from other instances) is reproduced
+            here under the terms of the ActivityPub protocol. We are not responsible for
+            content originating from third-party servers.
+        </p>
+
+        <h3 style="margin-top:1.25rem;font-size:1rem;">Account termination</h3>
+        <p style="margin-top:0.5rem;line-height:1.7;">
+            The administrator reserves the right to suspend or delete accounts that
+            violate these terms, without prior notice.
+        </p>
+    </section>
+
+    <section style="margin-top:2.5rem;">
+        <h2>Privacy policy</h2>
+
+        <h3 style="margin-top:1.25rem;font-size:1rem;">Data we collect</h3>
+        <ul style="margin-top:0.5rem;line-height:1.9;padding-left:1.25rem;">
+            <li>
+                <strong>Account data:</strong> username, email address, display name,
+                hashed password. Your email is used only for account confirmation
+                and is never shared publicly.
+            </li>
+            <li>
+                <strong>Content data:</strong> recipes, comments, and photos you publish.
+                Published content is public and federated to other ActivityPub servers.
+            </li>
+            <li>
+                <strong>Technical data:</strong> IP addresses may appear in server logs
+                for a limited time for security and abuse prevention purposes.
+            </li>
+        </ul>
+
+        <h3 style="margin-top:1.25rem;font-size:1rem;">Federation and data sharing</h3>
+        <p style="margin-top:0.5rem;line-height:1.7;">
+            Pasticcio is part of the Fediverse. When you publish a recipe or comment,
+            it may be distributed to other ActivityPub servers. Once federated,
+            we cannot guarantee deletion from third-party servers.
+        </p>
+        <p style="margin-top:0.5rem;line-height:1.7;">
+            Your public profile (username, display name, bio, public key) is exposed
+            via the ActivityPub Actor endpoint and may be fetched by any server.
+        </p>
+
+        <h3 style="margin-top:1.25rem;font-size:1rem;">What we do not do</h3>
+        <ul style="margin-top:0.5rem;line-height:1.9;padding-left:1.25rem;">
+            <li>We do not sell your data.</li>
+            <li>We do not show advertising.</li>
+            <li>We do not use tracking pixels or third-party analytics.</li>
+            <li>We do not share your email with third parties.</li>
+        </ul>
+
+        <h3 style="margin-top:1.25rem;font-size:1rem;">Your rights</h3>
+        <p style="margin-top:0.5rem;line-height:1.7;">
+            You can delete your account and content at any time.
+            To request deletion of your data, contact the administrator at
+            {% if instance_contact %}
+            <a href="mailto:{{ instance_contact }}">{{ instance_contact }}</a>.
+            {% else %}
+            the address listed on the <a href="/contact">contact page</a>.
+            {% endif %}
+        </p>
+
+        <h3 style="margin-top:1.25rem;font-size:1rem;">Cookies</h3>
+        <p style="margin-top:0.5rem;line-height:1.7;">
+            We use a single session cookie (<code style="background:var(--muted);padding:1px 5px;border-radius:3px;">session</code>)
+            to keep you logged in. It contains a signed authentication token and no
+            personal information. It is set only when you log in and deleted when you
+            log out or it expires ({{ jwt_expire_hours }}h).
+        </p>
+
+        <h3 style="margin-top:1.25rem;font-size:1rem;">Contact</h3>
+        <p style="margin-top:0.5rem;line-height:1.7;">
+            Questions about privacy? Contact
+            {% if instance_contact %}
+            <a href="mailto:{{ instance_contact }}">{{ instance_contact }}</a>.
+            {% else %}
+            the administrator via the <a href="/contact">contact page</a>.
+            {% endif %}
+        </p>
+    </section>
+
+    <section style="margin-top:2.5rem;">
+        <h2>Licence</h2>
+        <p style="margin-top:0.5rem;line-height:1.7;">
+            Pasticcio software is released under the
+            <a href="https://eupl.eu/" target="_blank" rel="noopener">
+                European Union Public Licence v1.2 (EUPL-1.2)
+            </a>.
+        </p>
+    </section>
+
+</div>
+{% endblock %}

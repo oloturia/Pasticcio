@@ -1,0 +1,39 @@
+# ============================================================
+# Caddyfile.dev — Caddy configuration for development
+# ============================================================
+#
+# Caddy is a modern reverse proxy that handles HTTPS automatically.
+# In development it uses self-signed certificates (the browser will
+# warn you — that's expected and fine).
+#
+# In production, Caddy would automatically obtain a real Let's Encrypt
+# certificate — just change the domain name below.
+#
+# Caddy's syntax is intentionally simple:
+#   <domain> { ... }  →  configuration block for that domain
+
+# Local development domain.
+# Add "127.0.0.1 pasticcio.localhost" to your /etc/hosts,
+# or use http://localhost:8000 directly for development without HTTPS.
+pasticcio.localhost {
+
+    # Caddy automatically generates a self-signed certificate for
+    # .localhost domains — no extra configuration needed.
+
+    # Forward all requests to the "web" container on port 8000
+    # (the name "web" works thanks to the shared Podman network)
+    reverse_proxy web:8000
+
+    # Basic security headers
+    header {
+        # Remove the "Server" header (don't reveal that we use Caddy)
+        -Server
+        # Basic XSS protection
+        X-Content-Type-Options nosniff
+    }
+
+    # JSON format logs — easier to parse
+    log {
+        format json
+    }
+}
