@@ -31,6 +31,7 @@ from app.routers import recipe_fork
 from app.routers import bookmark_form
 from app.routers import nutrition
 from app.routers import food_items
+from app.routers import translations
 from fastapi.staticfiles import StaticFiles
 import os
 
@@ -95,6 +96,7 @@ app.include_router(recipe_fork.router)
 app.include_router(nutrition.router)
 app.include_router(food_items.router)
 app.include_router(bookmark_form.router)
+app.include_router(translations.router)
 # --- Root ---
 
 async def root():

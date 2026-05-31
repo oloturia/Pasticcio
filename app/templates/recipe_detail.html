@@ -186,6 +186,17 @@
         .ing-row { grid-template-columns:1fr 1fr; }
         .nutrition-label { max-width: 100%; }
     }
+    
+    /* Translation notice banner */
+        .translation-notice {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: var(--radius);
+        padding: 0.5rem 0.875rem;
+        font-size: 0.85rem;
+        color: #856404;
+        margin-bottom: 0.75rem;
+    }
 </style>
 {% endblock %}
 
@@ -193,7 +204,30 @@
 <div class="page-narrow">
 
     <article>
-
+        {% if recipe.translations | length > 1 %}
+        <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;
+                    margin-bottom:1rem;padding:0.6rem 0.875rem;
+                    background:var(--muted);border-radius:var(--radius);
+                    border:1px solid var(--border);">
+            <span style="font-size:0.78rem;color:var(--text-faint);font-weight:600;
+                         text-transform:uppercase;letter-spacing:0.05em;">🌍 Language:</span>
+            {% for trans in recipe.translations | sort(attribute='language') %}
+            {% set is_current = (translation and trans.language == translation.language) %}
+            <a href="/api/v1/recipes/{{ recipe.id }}?lang={{ trans.language }}"
+               style="padding:0.25rem 0.65rem;border-radius:3px;font-size:0.82rem;font-weight:600;
+                      text-decoration:none;
+                      {% if is_current %}
+                      background:var(--accent);color:#fff;
+                      {% else %}
+                      background:#fff;color:var(--text-soft);border:1px solid var(--border);
+                      {% endif %}">
+                {{ trans.language | upper }}
+                {% if trans.status.value == 'reviewed' %}✓{% endif %}
+                {% if trans.status.value == 'draft' %}(draft){% endif %}
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
         {% if cover_url %}
         <img src="{{ cover_url }}" alt="{{ cover_alt or translation.title }}"
              style="width:100%;border-radius:6px;margin-bottom:1.25rem;object-fit:cover;max-height:360px;">
@@ -595,6 +629,16 @@
                     🍴 Fork
                 </a>
             {% endif %}
+            
+            <a href="/recipes/{{ recipe.id }}/translate?from={{ recipe.original_language }}"
+                style="padding:0.4rem 0.9rem;background:#fff;color:var(--text-soft);
+                border:1px solid var(--border);border-radius:var(--radius);
+                font-size:0.85rem;font-weight:600;text-decoration:none;
+                display:inline-flex;align-items:center;gap:0.4rem;"
+                onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+                onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-soft)'">
+                🌍 Translate
+            </a>
 
         </div>
     {# Comments section #}

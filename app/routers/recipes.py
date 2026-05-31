@@ -372,12 +372,79 @@ async def get_recipe(
     }
 
     accept = request.headers.get("accept", "")
+
     if "text/html" in accept and "application/activity+json" not in accept:
-        # Pick the best available translation
-        translation = next(
-            (t for t in recipe.translations if t.language == recipe.original_language),
-            recipe.translations[0] if recipe.translations else None,
+        # Pick the best available translation.
+        # Priority: 1) ?lang= query param, 2) original language, 3) first available
+        requested_lang = request.query_params.get("lang")
+
+        if requested_lang:
+            translation = next(
+                (t for t in recipe.translations if t.language == requested_lang),
+                None,
+            )
+        else:
+            translation = None
+
+        if not translation:
+            translation = next(
+                (t for t in recipe.translations if t.language == recipe.original_language),
+                recipe.translations[0] if recipe.translations else None,
+            )
+
+        # Show a notice if the displayed translation is a draft
+        translation_notice = None
+        if translation and translation.status.value == "draft":
+            translation_notice = "This translation is a draft and may be incomplete."
+
+        steps = sorted(translation.steps, key=lambda s: s.get("order", 0)) if translation else []
+        comments = [
+            c for c in recipe.cooked_this
+            if c.status == CookedThisStatus.PUBLISHED and c.parent_id is None
+        ]
+        comments.sort(key=lambda c: c.created_at)
+        cover = next((p for p in recipe.photos if p.is_cover), None)
+        if cover is None and recipe.photos:
+            cover = recipe.photos[0]
+
+        # Check if current user has bookmarked this recipe
+        is_bookmarked = False
+        bookmark_id = None
+        if current_user:
+            bm_result = await db.execute(
+                select(Bookmark).where(
+                    Bookmark.user_id == current_user.id,
+                    Bookmark.recipe_ap_id == recipe.ap_id,
+                )
+            )
+            bm = bm_result.scalar_one_or_none()
+            if bm:
+                is_bookmarked = True
+                bookmark_id = str(bm.id)
+
+        return templates.TemplateResponse(
+            "recipe_detail.html",
+            {
+                "request": request,
+                "recipe": recipe,
+                "translation": translation,
+                "translation_notice": translation_notice,  # <-- NUOVO
+                "ingredients": recipe.ingredients,
+                "steps": steps,
+                "cover_url": f"/media/{cover.url}" if cover else None,
+                "cover_alt": cover.alt_text if cover else None,
+                "step_photo_map": step_photo_map,
+                "current_user": current_user,
+                "comments": comments,
+                "comment_error": None,
+                "comment_content": None,
+                "unit_options_html": unit_options_html(),
+                "is_bookmarked": is_bookmarked,
+                "bookmark_id": bookmark_id,
+            },
         )
+
+
         steps = sorted(translation.steps, key=lambda s: s.get("order", 0)) if translation else []
         comments = [
             c for c in recipe.cooked_this

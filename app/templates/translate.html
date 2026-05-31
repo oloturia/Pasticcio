@@ -1,0 +1,549 @@
+{% extends "base.html" %}
+
+{% block title %}Translate — {{ source_translation.title }} — Pasticcio{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ── Split screen layout ── */
+.translate-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    height: calc(100vh - 120px);
+    min-height: 600px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+@media (max-width: 768px) {
+    .translate-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
+}
+
+/* ── Source panel (left, readonly) ── */
+.source-panel {
+    background: var(--muted);
+    border-right: 2px solid var(--border);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Target panel (right, editable) ── */
+.target-panel {
+    background: var(--surface);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Panel header ── */
+.panel-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.source-panel .panel-header {
+    background: var(--muted);
+}
+
+.target-panel .panel-header {
+    background: var(--surface);
+}
+
+.lang-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.65rem;
+    background: var(--accent-bg);
+    color: var(--accent);
+    border-radius: 3px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.panel-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-soft);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Panel body ── */
+.panel-body {
+    padding: 1.25rem;
+    flex: 1;
+}
+
+/* ── Readonly fields (source) ── */
+.source-field {
+    margin-bottom: 1.25rem;
+}
+
+.source-field label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+    margin-bottom: 0.4rem;
+}
+
+.source-field .value {
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--text);
+    padding: 0.5rem 0.65rem;
+    background: rgba(255,255,255,0.6);
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    min-height: 2rem;
+}
+
+.source-field .value.title {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* ── Editable fields (target) ── */
+.edit-field {
+    margin-bottom: 1.25rem;
+}
+
+.edit-field label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+    margin-bottom: 0.4rem;
+}
+
+.edit-field input[type="text"],
+.edit-field textarea {
+    width: 100%;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    background: #fff;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+    resize: vertical;
+}
+
+.edit-field input[type="text"]:focus,
+.edit-field textarea:focus {
+    border-color: var(--accent);
+}
+
+.edit-field input[type="text"].title-input {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* ── Step pair ── */
+.step-pair {
+    display: contents; /* rendered inside the grid */
+}
+
+.step-section {
+    margin-bottom: 0;
+}
+
+.step-source {
+    margin-bottom: 0.6rem;
+    padding: 0.65rem 0.75rem;
+    background: rgba(255,255,255,0.6);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    position: relative;
+}
+
+.step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4rem;
+    height: 1.4rem;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 0.68rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-right: 0.4rem;
+    vertical-align: middle;
+}
+
+/* ── Language selector ── */
+.lang-select {
+    padding: 0.35rem 0.65rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    font-family: inherit;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.15s;
+    cursor: pointer;
+}
+
+.lang-select:focus {
+    border-color: var(--accent);
+}
+
+/* ── Action bar ── */
+.action-bar {
+    position: sticky;
+    bottom: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 0.875rem 1.25rem;
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    flex-wrap: wrap;
+    z-index: 10;
+}
+
+.btn-save {
+    padding: 0.5rem 1.1rem;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+}
+
+.btn-save:hover { background: #9a4516; }
+
+.btn-reviewed {
+    padding: 0.5rem 1.1rem;
+    background: #2d7a2d;
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.btn-reviewed:hover { background: #256025; }
+
+.btn-cancel {
+    padding: 0.5rem 1.1rem;
+    background: #fff;
+    color: var(--text-soft);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-cancel:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
+/* ── Status badge ── */
+.status-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    border-radius: 3px;
+}
+
+.status-draft    { background: #fff3cd; color: #856404; }
+.status-reviewed { background: #d1e7dd; color: #0f5132; }
+.status-original { background: var(--accent-bg); color: var(--accent); }
+
+/* ── Top bar (above split) ── */
+.translate-topbar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    margin-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+
+.translate-topbar h1 {
+    font-size: 1.1rem;
+    margin: 0;
+    flex: 1;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="padding: 0 1.25rem; max-width: 1400px; margin: 0 auto;">
+
+    {# ── Top bar ── #}
+    <div class="translate-topbar">
+        <a href="/api/v1/recipes/{{ recipe.id }}" class="btn-cancel">← Back to recipe</a>
+        <h1>Translate: {{ source_translation.title }}</h1>
+
+        {# Language selector — changes source language #}
+        <form method="get" action="/recipes/{{ recipe.id }}/translate"
+              style="display:flex;align-items:center;gap:0.5rem;">
+            <label style="font-size:0.82rem;color:var(--text-soft);">Translate from:</label>
+            <select name="from" class="lang-select"
+                    onchange="this.form.submit()">
+                {% for code, name in supported_languages.items() %}
+                {% if code in existing_langs %}
+                <option value="{{ code }}" {% if code == source_lang %}selected{% endif %}>
+                    {{ name }}
+                </option>
+                {% endif %}
+                {% endfor %}
+            </select>
+            {% if to_lang %}
+            <input type="hidden" name="to" value="{{ to_lang }}">
+            {% endif %}
+        </form>
+    </div>
+
+    {# ── Split screen ── #}
+    <div class="translate-layout">
+
+        {# ══════════════════════════════════════════
+           LEFT PANEL — source (readonly)
+        ══════════════════════════════════════════ #}
+        <div class="source-panel">
+
+            <div class="panel-header">
+                <span class="lang-badge">{{ source_lang }}</span>
+                <span class="panel-title">{{ source_lang_name }} — original</span>
+                <span class="status-badge status-{{ source_translation.status.value }}">
+                    {{ source_translation.status.value }}
+                </span>
+            </div>
+
+            <div class="panel-body">
+
+                <div class="source-field">
+                    <label>Title</label>
+                    <div class="value title">{{ source_translation.title }}</div>
+                </div>
+
+                {% if source_translation.description %}
+                <div class="source-field">
+                    <label>Description</label>
+                    <div class="value">{{ source_translation.description }}</div>
+                </div>
+                {% endif %}
+
+                {% if source_steps %}
+                <div class="source-field">
+                    <label>Steps</label>
+                    {% for step in source_steps %}
+                    <div class="step-source">
+                        <span class="step-num">{{ step.order }}</span>
+                        {{ step.text }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+
+        {# ══════════════════════════════════════════
+           RIGHT PANEL — target (editable)
+        ══════════════════════════════════════════ #}
+        <div class="target-panel">
+
+            <div class="panel-header">
+                {# Language selector for TARGET language #}
+                <form method="get" action="/recipes/{{ recipe.id }}/translate"
+                      id="lang-selector-form"
+                      style="display:flex;align-items:center;gap:0.5rem;flex:1;">
+                    <input type="hidden" name="from" value="{{ source_lang }}">
+                    <span class="lang-badge" style="background:#e8f5e9;color:#2d7a2d;">→</span>
+                    <select name="to" class="lang-select" id="target-lang-select"
+                            onchange="document.getElementById('lang-selector-form').submit()">
+                        <option value="">— choose language —</option>
+                        {% for code, name in supported_languages.items() %}
+                        {% if code != source_lang %}
+                        <option value="{{ code }}" {% if code == to_lang %}selected{% endif %}>
+                            {{ name }}
+                            {% if code in existing_langs %} ✓{% endif %}
+                        </option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+
+                    {% if target_translation %}
+                    <span class="status-badge status-{{ target_translation.status.value }}">
+                        {{ target_translation.status.value }}
+                    </span>
+                    {% endif %}
+                </form>
+            </div>
+
+            {% if to_lang %}
+            {# ── Translation form ── #}
+            <form method="post" action="/recipes/{{ recipe.id }}/translate"
+                  id="translation-form" style="flex:1;display:flex;flex-direction:column;">
+                <input type="hidden" name="target_lang" value="{{ to_lang }}">
+
+                <div class="panel-body" style="flex:1;">
+
+                    <div class="edit-field">
+                        <label>Title *</label>
+                        <input type="text" name="title" required
+                               class="title-input"
+                               placeholder="Translated title…"
+                               value="{{ target_translation.title if target_translation else '' }}">
+                    </div>
+
+                    <div class="edit-field">
+                        <label>Description</label>
+                        <textarea name="description" rows="3"
+                                  placeholder="Translated description…">{{ target_translation.description if target_translation and target_translation.description else '' }}</textarea>
+                    </div>
+
+                    {% if source_steps %}
+                    <div class="edit-field">
+                        <label>Steps</label>
+
+                        {% for step in source_steps %}
+                        <div style="margin-bottom:1rem;">
+                            {# Mini source reminder above each step textarea #}
+                            <div style="font-size:0.78rem;color:var(--text-faint);
+                                        padding:0.4rem 0.5rem;background:var(--muted);
+                                        border-radius:4px 4px 0 0;border:1px solid var(--border);
+                                        border-bottom:none;">
+                                <span class="step-num">{{ step.order }}</span>
+                                {{ step.text | truncate(120) }}
+                            </div>
+                            <textarea name="step_text[]" rows="2" required
+                                      placeholder="Translation of step {{ step.order }}…"
+                                      style="border-radius:0 0 4px 4px;margin:0;">{% if target_steps and loop.index0 < target_steps|length %}{{ target_steps[loop.index0].text }}{% endif %}</textarea>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                </div>
+
+                {# ── Action bar ── #}
+                <div class="action-bar">
+                    <a href="/api/v1/recipes/{{ recipe.id }}" class="btn-cancel">Cancel</a>
+
+                    <button type="submit" name="mark_reviewed" value="0" class="btn-save">
+                        💾 Save draft
+                    </button>
+
+                    {% if is_author %}
+                    <button type="submit" name="mark_reviewed" value="1" class="btn-reviewed">
+                        ✓ Save &amp; mark reviewed
+                    </button>
+                    {% endif %}
+
+                    {% if target_translation and target_translation.status.value != 'original' and is_author %}
+                    <form method="post"
+                          action="/recipes/{{ recipe.id }}/translations/{{ to_lang }}/delete"
+                          style="margin-left:auto;"
+                          onsubmit="return confirm('Delete this translation?')">
+                        <button type="submit"
+                                style="padding:0.5rem 0.9rem;background:none;
+                                       border:1px solid #e0b0b0;border-radius:var(--radius);
+                                       font-size:0.85rem;color:#c0392b;cursor:pointer;
+                                       font-family:inherit;">
+                            🗑 Delete
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+
+            </form>
+
+            {% else %}
+            {# ── No language selected yet ── #}
+            <div class="panel-body" style="display:flex;align-items:center;
+                                           justify-content:center;flex:1;
+                                           color:var(--text-faint);text-align:center;">
+                <div>
+                    <div style="font-size:3rem;margin-bottom:0.75rem;">🌍</div>
+                    <p style="font-size:1rem;">Select a target language above to begin translating.</p>
+                    {% if existing_langs | length > 1 %}
+                    <p style="font-size:0.85rem;margin-top:0.5rem;">
+                        Languages already translated:
+                        {% for code in existing_langs %}
+                        {% if code != source_lang %}
+                        <a href="/recipes/{{ recipe.id }}/translate?from={{ source_lang }}&to={{ code }}"
+                           style="color:var(--accent);">{{ supported_languages.get(code, code) }}</a>
+                        {% endif %}
+                        {% endfor %}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+// Sync scroll between the two panels — when you scroll the left
+// panel, the right panel scrolls to the same position and vice versa.
+// This is a convenience feature so steps stay aligned.
+(function() {
+    const source = document.querySelector('.source-panel');
+    const target = document.querySelector('.target-panel');
+    if (!source || !target) return;
+
+    let syncing = false;
+
+    source.addEventListener('scroll', function() {
+        if (syncing) return;
+        syncing = true;
+        const ratio = source.scrollTop / (source.scrollHeight - source.clientHeight || 1);
+        target.scrollTop = ratio * (target.scrollHeight - target.clientHeight);
+        syncing = false;
+    });
+
+    target.addEventListener('scroll', function() {
+        if (syncing) return;
+        syncing = true;
+        const ratio = target.scrollTop / (target.scrollHeight - target.clientHeight || 1);
+        source.scrollTop = ratio * (source.scrollHeight - source.clientHeight);
+        syncing = false;
+    });
+})();
+</script>
+
+{% endblock %}
